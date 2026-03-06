@@ -199,6 +199,20 @@
         .mstat-lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
         .mnotes { background: var(--black); padding: 1rem; border-left: 3px solid var(--gold); color: var(--muted); line-height: 1.6; font-size: 0.92rem; }
 
+        /* ── PHOTO ── */
+        .card-photo { width: 100%; height: 180px; object-fit: cover; object-position: top; display: block; border-bottom: 1px solid var(--gray-light); }
+        .card-photo-placeholder { width: 100%; height: 120px; background: linear-gradient(135deg, var(--gray), var(--dark)); display: flex; align-items: center; justify-content: center; font-size: 2.5rem; border-bottom: 1px solid var(--gray-light); }
+        .modal-photo { width: 100%; max-height: 280px; object-fit: cover; object-position: top; display: block; }
+        .photo-upload-wrap { display: flex; flex-direction: column; gap: 0.5rem; }
+        .photo-upload-wrap input[type="file"] { padding: 0.5rem; background: var(--black); border: 1px dashed var(--gray-light); color: var(--muted); font-size: 0.85rem; cursor: pointer; }
+        .photo-upload-wrap input[type="file"]:hover { border-color: var(--gold); }
+        .photo-preview { width: 80px; height: 80px; object-fit: cover; border: 2px solid var(--gold); display: none; }
+        .photo-url-input { font-size: 0.8rem; color: var(--muted); margin-top: 0.25rem; }
+
+        /* ── VIDEO ── */
+        .video-wrap { position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; background: var(--black); }
+        .video-wrap iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; }
+
         /* ── FORMS ── */
         .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 0.85rem; }
         .fg { display: flex; flex-direction: column; gap: 0.35rem; }
@@ -371,7 +385,19 @@
         </div>
         <div class="fsec-title">Scouting</div>
         <div class="fg" style="margin-bottom:0.85rem"><label>Tags (comma separated)</label><input type="text" id="aTags" placeholder="Elite Power, D1 Prospect, Two-Way"></div>
-        <div class="fg"><label>Scouting Notes</label><textarea id="aNotes" rows="3"></textarea></div>
+        <div class="fg" style="margin-bottom:0.85rem"><label>Scouting Notes</label><textarea id="aNotes" rows="3"></textarea></div>
+        <div class="fsec-title">Photo & Highlights</div>
+        <div class="form-grid">
+            <div class="fg photo-upload-wrap">
+                <label>Profile Photo</label>
+                <input type="file" id="aPhotoFile" accept="image/*" onchange="previewPhoto('aPhotoFile','aPhotoPreview')">
+                <img id="aPhotoPreview" class="photo-preview">
+            </div>
+            <div class="fg">
+                <label>Highlight Video URL (YouTube or Vimeo)</label>
+                <input type="text" id="aHighlightUrl" placeholder="https://youtube.com/watch?v=...">
+            </div>
+        </div>
         <div class="form-actions">
             <button class="btn btn-ghost" onclick="closeAddPanel()">Cancel</button>
             <button class="btn btn-gold" id="addSubmitBtn" onclick="submitAdd()">Add Player</button>
@@ -451,7 +477,19 @@
                 </div>
                 <div class="fsec-title">Scouting</div>
                 <div class="fg" style="margin-bottom:0.85rem"><label>Tags (comma separated)</label><input type="text" id="eTags"></div>
-                <div class="fg"><label>Notes</label><textarea id="eNotes" rows="4"></textarea></div>
+                <div class="fg" style="margin-bottom:0.85rem"><label>Notes</label><textarea id="eNotes" rows="4"></textarea></div>
+                <div class="fsec-title">Photo & Highlights</div>
+                <div class="form-grid">
+                    <div class="fg photo-upload-wrap">
+                        <label>Profile Photo</label>
+                        <input type="file" id="ePhotoFile" accept="image/*" onchange="previewPhoto('ePhotoFile','ePhotoPreview')">
+                        <img id="ePhotoPreview" class="photo-preview">
+                    </div>
+                    <div class="fg">
+                        <label>Highlight Video URL (YouTube or Vimeo)</label>
+                        <input type="text" id="eHighlightUrl" placeholder="https://youtube.com/watch?v=...">
+                    </div>
+                </div>
                 <div class="form-actions">
                     <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
                     <button class="btn btn-gold" id="saveEditBtn" onclick="saveEdit()">Save Changes</button>
@@ -597,6 +635,7 @@ function renderPlayers(list) {
         const tags = (p.tags || []).slice(0, 3).map(t => `<span class="tag ${tagCls(t)}">${t}</span>`).join('');
 
         card.innerHTML = `
+            ${p.photo_url ? `<img class="card-photo" src="${p.photo_url}" alt="${p.name}" onerror="this.style.display='none'">` : `<div class="card-photo-placeholder">⚾</div>`}
             <div class="card-head">
                 <div>
                     <div class="card-name">${p.name}</div>
@@ -665,6 +704,19 @@ function renderView(p) {
          <span>Age: ${age || 'N/A'}</span>
          <span style="color:var(--gold);font-weight:700">${p.grade || '—'}</span>`;
 
+    // photo in modal header
+    const modalHead = document.querySelector('.modal-head');
+    const existingPhoto = modalHead.querySelector('.modal-photo');
+    if (existingPhoto) existingPhoto.remove();
+    if (p.photo_url) {
+        const img = document.createElement('img');
+        img.className = 'modal-photo';
+        img.src = p.photo_url;
+        img.alt = p.name;
+        img.onerror = () => img.remove();
+        modalHead.insertBefore(img, modalHead.firstChild);
+    }
+
     let html = '';
     if (p.max_velo || p.avg_velo || p.bat_speed || p.hha) {
         html += `<div class="msec"><div class="msec-title">Hitting Metrics</div><div class="mstats">`;
@@ -699,6 +751,14 @@ function renderView(p) {
         p.tags.forEach(t => { html += `<span class="tag ${tagCls(t)}">${t}</span>`; });
         html += `</div></div>`;
     }
+    if (p.highlight_url) {
+        const embedUrl = getEmbedUrl(p.highlight_url);
+        if (embedUrl) {
+            html += `<div class="msec"><div class="msec-title">🎬 Highlight Video</div>
+                <div class="video-wrap"><iframe src="${embedUrl}" allowfullscreen allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"></iframe></div>
+            </div>`;
+        }
+    }
     document.getElementById('viewPanel').innerHTML = html;
 }
 
@@ -723,6 +783,12 @@ function enterEdit() {
     sv('eSixtyDash', p.sixty_dash); sv('ePopTime', p.pop_time);
     sv('eSpinRate', p.spin_rate); sv('eVerticalJump', p.vertical_jump); sv('eOutfieldVelo', p.outfield_velo);
     sv('eNotes', p.notes); sv('eTags', (p.tags || []).join(', '));
+    sv('eHighlightUrl', p.highlight_url);
+    // show existing photo preview
+    const prev = document.getElementById('ePhotoPreview');
+    if (p.photo_url) { prev.src = p.photo_url; prev.style.display = 'block'; }
+    else { prev.style.display = 'none'; prev.src = ''; }
+    sv('ePhotoFile', '');
     document.getElementById('viewPanel').style.display = 'none';
     document.getElementById('editPanel').style.display = 'block';
     document.getElementById('editModalBtn').classList.add('editing');
@@ -744,6 +810,9 @@ async function saveEdit() {
     const btn = document.getElementById('saveEditBtn');
     btn.disabled = true; btn.textContent = 'Saving...';
     const payload = buildPayload('e');
+    // upload new photo if selected
+    const photoUrl = await uploadPhoto('e');
+    if (photoUrl) payload.photo_url = photoUrl;
     try {
         const updated = await sbUpdate(currentId, payload);
         const idx = allPlayers.findIndex(p => p.id === currentId);
@@ -779,6 +848,9 @@ async function submitAdd() {
     if (payload.type === 'Two-Way' && !tags.includes('Two-Way')) tags.push('Two-Way');
     if (['A+','A','A-'].includes(payload.grade) && !tags.includes('Elite Prospect')) tags.push('Elite Prospect');
     payload.tags = tags;
+    // upload photo if selected
+    const photoUrl = await uploadPhoto('a');
+    if (photoUrl) payload.photo_url = photoUrl;
     try {
         const result = await sbInsert(payload);
         allPlayers.push(result[0]);
@@ -793,10 +865,12 @@ async function submitAdd() {
 }
 
 function clearAddForm() {
-    ['aName','aHeight','aPosition','aNotes','aTags'].forEach(id => sv(id, ''));
+    ['aName','aHeight','aPosition','aNotes','aTags','aHighlightUrl'].forEach(id => sv(id, ''));
     ['aDOB','aGradYear','aBats','aThrows','aGrade'].forEach(id => sv(id, ''));
     ['aWeight','aMaxVelo','aAvgVelo','aBatSpeed','aPitchVelo','aHHA','aSixtyDash','aPopTime','aSpinRate','aVerticalJump','aOutfieldVelo'].forEach(id => sv(id, ''));
     sv('aType', 'Hitter');
+    sv('aPhotoFile', '');
+    document.getElementById('aPhotoPreview').style.display = 'none';
 }
 
 // ── Delete ─────────────────────────────────────────────────────────
@@ -892,11 +966,52 @@ function buildPayload(prefix) {
         spin_rate: parseFloat(gv(prefix + 'SpinRate')) || null,
         vertical_jump: parseFloat(gv(prefix + 'VerticalJump')) || null,
         outfield_velo: parseFloat(gv(prefix + 'OutfieldVelo')) || null,
+        highlight_url: gv(prefix + 'HighlightUrl') || null,
         grade: gv(prefix + 'Grade') || null,
         type: gv(prefix + 'Type') || 'Hitter',
         notes: gv(prefix + 'Notes') || null,
         tags: tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
     };
+}
+
+// ── Photo upload ───────────────────────────────────────────────────
+function previewPhoto(inputId, previewId) {
+    const file = document.getElementById(inputId).files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        const prev = document.getElementById(previewId);
+        prev.src = e.target.result;
+        prev.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+}
+
+async function uploadPhoto(prefix) {
+    const fileInput = document.getElementById(prefix + 'PhotoFile');
+    if (!fileInput || !fileInput.files[0]) return null;
+    const file = fileInput.files[0];
+    const ext = file.name.split('.').pop();
+    const filename = `player_${Date.now()}.${ext}`;
+    const r = await fetch(`${SUPABASE_URL}/storage/v1/object/player-photos/${filename}`, {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': file.type },
+        body: file
+    });
+    if (!r.ok) { console.error('Photo upload failed'); return null; }
+    return `${SUPABASE_URL}/storage/v1/object/public/player-photos/${filename}`;
+}
+
+// ── Video embed URL converter ──────────────────────────────────────
+function getEmbedUrl(url) {
+    if (!url) return null;
+    // YouTube
+    const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);
+    if (ytMatch) return `https://www.youtube.com/embed/${ytMatch[1]}`;
+    // Vimeo
+    const vimeoMatch = url.match(/vimeo\.com\/(\d+)/);
+    if (vimeoMatch) return `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    return null;
 }
 
 function calcAge(dob) {
