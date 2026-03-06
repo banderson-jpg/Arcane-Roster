@@ -359,6 +359,11 @@
             <div class="fg"><label>Bat Speed (mph)</label><input type="number" step="0.1" id="aBatSpeed"></div>
             <div class="fg"><label>Pitch Velo (mph)</label><input type="number" step="0.1" id="aPitchVelo"></div>
             <div class="fg"><label>Best HHA</label><input type="number" step="0.001" id="aHHA" placeholder="0.350"></div>
+            <div class="fg"><label>60 Yard Dash (sec)</label><input type="number" step="0.01" id="aSixtyDash" placeholder="7.05"></div>
+            <div class="fg"><label>Pop Time (sec)</label><input type="number" step="0.01" id="aPopTime" placeholder="2.05"></div>
+            <div class="fg"><label>Spin Rate (rpm)</label><input type="number" step="1" id="aSpinRate" placeholder="2100"></div>
+            <div class="fg"><label>Vertical Jump (in)</label><input type="number" step="0.5" id="aVerticalJump" placeholder="28.0"></div>
+            <div class="fg"><label>Outfield Velo (mph)</label><input type="number" step="0.1" id="aOutfieldVelo" placeholder="85.0"></div>
             <div class="fg"><label>Grade</label>
                 <select id="aGrade"><option value="">—</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select>
             </div>
@@ -434,6 +439,11 @@
                     <div class="fg"><label>Bat Speed</label><input type="number" step="0.1" id="eBatSpeed"></div>
                     <div class="fg"><label>Pitch Velo</label><input type="number" step="0.1" id="ePitchVelo"></div>
                     <div class="fg"><label>Best HHA</label><input type="number" step="0.001" id="eHHA"></div>
+                    <div class="fg"><label>60 Yard Dash (sec)</label><input type="number" step="0.01" id="eSixtyDash"></div>
+                    <div class="fg"><label>Pop Time (sec)</label><input type="number" step="0.01" id="ePopTime"></div>
+                    <div class="fg"><label>Spin Rate (rpm)</label><input type="number" step="1" id="eSpinRate"></div>
+                    <div class="fg"><label>Vertical Jump (in)</label><input type="number" step="0.5" id="eVerticalJump"></div>
+                    <div class="fg"><label>Outfield Velo (mph)</label><input type="number" step="0.1" id="eOutfieldVelo"></div>
                     <div class="fg"><label>Grade</label>
                         <select id="eGrade"><option value="">—</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select>
                     </div>
@@ -664,7 +674,20 @@ function renderView(p) {
         if (p.hha) html += mstat(fmtHHA(p.hha), 'Best HHA');
         html += `</div></div>`;
     }
-    if (p.pitch_velo) html += `<div class="msec"><div class="msec-title">Pitching Metrics</div><div class="mstats">${mstat(p.pitch_velo, 'Pitch Velo')}</div></div>`;
+    if (p.pitch_velo || p.spin_rate) {
+        html += `<div class="msec"><div class="msec-title">Pitching Metrics</div><div class="mstats">`;
+        if (p.pitch_velo) html += mstat(p.pitch_velo, 'Pitch Velo');
+        if (p.spin_rate) html += mstat(p.spin_rate.toLocaleString(), 'Spin Rate');
+        html += `</div></div>`;
+    }
+    if (p.sixty_dash || p.pop_time || p.vertical_jump || p.outfield_velo) {
+        html += `<div class="msec"><div class="msec-title">Athletic Metrics</div><div class="mstats">`;
+        if (p.sixty_dash) html += mstat(p.sixty_dash + 's', '60 Yard Dash');
+        if (p.pop_time) html += mstat(p.pop_time + 's', 'Pop Time');
+        if (p.vertical_jump) html += mstat(p.vertical_jump + '"', 'Vertical Jump');
+        if (p.outfield_velo) html += mstat(p.outfield_velo, 'OF Velo');
+        html += `</div></div>`;
+    }
     html += `<div class="msec"><div class="msec-title">Player Info</div><div class="mstats">
         ${mstat(p.type || '—', 'Type')}
         ${mstat(p.bats || '—', 'Bats')}
@@ -697,6 +720,8 @@ function enterEdit() {
     sv('eBats', p.bats); sv('eThrows', p.throws); sv('eMaxVelo', p.max_velo);
     sv('eAvgVelo', p.avg_velo); sv('eBatSpeed', p.bat_speed); sv('ePitchVelo', p.pitch_velo);
     sv('eHHA', p.hha); sv('eGrade', p.grade); sv('eType', p.type || 'Hitter');
+    sv('eSixtyDash', p.sixty_dash); sv('ePopTime', p.pop_time);
+    sv('eSpinRate', p.spin_rate); sv('eVerticalJump', p.vertical_jump); sv('eOutfieldVelo', p.outfield_velo);
     sv('eNotes', p.notes); sv('eTags', (p.tags || []).join(', '));
     document.getElementById('viewPanel').style.display = 'none';
     document.getElementById('editPanel').style.display = 'block';
@@ -770,7 +795,7 @@ async function submitAdd() {
 function clearAddForm() {
     ['aName','aHeight','aPosition','aNotes','aTags'].forEach(id => sv(id, ''));
     ['aDOB','aGradYear','aBats','aThrows','aGrade'].forEach(id => sv(id, ''));
-    ['aWeight','aMaxVelo','aAvgVelo','aBatSpeed','aPitchVelo','aHHA'].forEach(id => sv(id, ''));
+    ['aWeight','aMaxVelo','aAvgVelo','aBatSpeed','aPitchVelo','aHHA','aSixtyDash','aPopTime','aSpinRate','aVerticalJump','aOutfieldVelo'].forEach(id => sv(id, ''));
     sv('aType', 'Hitter');
 }
 
@@ -862,6 +887,11 @@ function buildPayload(prefix) {
         bat_speed: parseFloat(gv(prefix + 'BatSpeed')) || null,
         pitch_velo: parseFloat(gv(prefix + 'PitchVelo')) || null,
         hha: parseFloat(gv(prefix + 'HHA')) || null,
+        sixty_dash: parseFloat(gv(prefix + 'SixtyDash')) || null,
+        pop_time: parseFloat(gv(prefix + 'PopTime')) || null,
+        spin_rate: parseFloat(gv(prefix + 'SpinRate')) || null,
+        vertical_jump: parseFloat(gv(prefix + 'VerticalJump')) || null,
+        outfield_velo: parseFloat(gv(prefix + 'OutfieldVelo')) || null,
         grade: gv(prefix + 'Grade') || null,
         type: gv(prefix + 'Type') || 'Hitter',
         notes: gv(prefix + 'Notes') || null,
