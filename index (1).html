@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Arcane Baseball — Player Roster</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --black: #111111;
+            --dark: #1e1e1e;
+            --card: #252525;
+            --gray: #2e2e2e;
+            --gray-light: #3a3a3a;
+            --gold: #d4af37;
+            --gold-light: #f0cb50;
+            --gold-dim: rgba(212,175,55,0.15);
+            --red: #c0392b;
+            --text: #f0f0f0;
+            --muted: #888;
+            --success: #27ae60;
+            --info: #2980b9;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Rajdhani', sans-serif;
+            background: var(--black);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        .header {
+            background: linear-gradient(180deg, #1a1a1a 0%, var(--black) 100%);
+            border-bottom: 2px solid var(--gold);
+            padding: 1.25rem 2rem;
+            position: sticky; top: 0; z-index: 100;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .logo { display: flex; align-items: center; gap: 1rem; }
+        .logo-mark {
+            width: 44px; height: 44px; background: var(--gold); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .logo-name {
+            font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; letter-spacing: 3px;
+            background: linear-gradient(135deg, var(--gold), var(--gold-light), var(--gold));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+            line-height: 1;
+        }
+        .logo-sub { font-size: 0.7rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-top: 2px; }
+        .header-right { display: flex; align-items: center; gap: 0.75rem; }
+        .admin-btn {
+            padding: 0.6rem 1.2rem; font-family: 'Oswald', sans-serif; font-size: 0.85rem;
+            letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s;
+            border: 1.5px solid var(--gray-light); background: transparent; color: var(--muted);
+        }
+        .admin-btn:hover { border-color: var(--gold); color: var(--gold); }
+        .admin-btn.active { background: var(--gold); border-color: var(--gold); color: var(--black); font-weight: 700; }
+
+        /* ── MAIN ── */
+        .main { max-width: 1380px; margin: 0 auto; padding: 1.5rem 2rem 4rem; }
+
+        /* ── STATS BAR ── */
+        .stats-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 1rem; margin-bottom: 1.75rem; }
+        .stat-tile {
+            background: linear-gradient(135deg, var(--dark), var(--gray));
+            border: 1px solid var(--gray-light); border-left: 3px solid var(--gold);
+            padding: 1rem 1.25rem;
+        }
+        .stat-num { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; color: var(--gold); line-height: 1; }
+        .stat-lbl { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-top: 2px; }
+
+        /* ── CONTROLS ── */
+        .controls { display: flex; gap: 0.75rem; margin-bottom: 1.25rem; flex-wrap: wrap; align-items: center; }
+        .search-wrap { flex: 1; min-width: 220px; position: relative; }
+        .search-wrap input {
+            width: 100%; padding: 0.85rem 0.85rem 0.85rem 2.75rem;
+            background: var(--dark); border: 1.5px solid var(--gray-light); color: var(--text);
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem;
+        }
+        .search-wrap input:focus { outline: none; border-color: var(--gold); }
+        .search-wrap::before { content:'🔍'; position:absolute; left:0.85rem; top:50%; transform:translateY(-50%); font-size:0.9rem; }
+        .fsel {
+            padding: 0.85rem 2rem 0.85rem 0.85rem; background: var(--dark);
+            border: 1.5px solid var(--gray-light); color: var(--text);
+            font-family: 'Rajdhani', sans-serif; font-size: 1rem; cursor: pointer; appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' fill='%23d4af37' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10l-5 5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat; background-position: right 0.75rem center;
+        }
+        .fsel:focus { outline: none; border-color: var(--gold); }
+
+        /* ── LOADING ── */
+        .loading-state {
+            text-align: center; padding: 4rem 2rem; color: var(--muted);
+            font-family: 'Oswald', sans-serif; letter-spacing: 2px; text-transform: uppercase;
+        }
+        .spinner {
+            width: 40px; height: 40px; border: 3px solid var(--gray-light);
+            border-top-color: var(--gold); border-radius: 50%;
+            animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── GRID ── */
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px,1fr)); gap: 1.25rem; }
+        .card {
+            background: var(--card); border: 1px solid var(--gray-light);
+            position: relative; overflow: hidden; cursor: pointer;
+            transition: transform 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+            animation: fadeUp 0.4s ease both;
+        }
+        .card::before { content:''; position:absolute; top:0; left:0; right:0; height:3px; background: linear-gradient(90deg, var(--gold), var(--gold-light), var(--gold)); }
+        .card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 8px 32px rgba(212,175,55,0.18); }
+        @keyframes fadeUp { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
+
+        .card-head { padding: 1rem 1.1rem; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--gray-light); }
+        .card-name { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 1px; }
+        .card-class { font-size: 0.75rem; color: var(--gold); font-weight: 600; margin-top: 1px; }
+        .grade-badge { padding: 0.35rem 0.75rem; font-family: 'Oswald', sans-serif; font-size: 0.9rem; font-weight: 700; letter-spacing: 1px; flex-shrink: 0; }
+        .g-ap{background:var(--gold);color:var(--black);}
+        .g-a{background:#1e8449;color:#fff;}
+        .g-am{background:#27ae60;color:#fff;}
+        .g-bp{background:#1a5276;color:#fff;}
+        .g-b{background:#154360;color:#fff;}
+        .g-bm{background:#0e2f4d;color:#fff;}
+        .g-cp{background:#a04000;color:#fff;}
+        .g-c{background:#7b2d00;color:#fff;}
+        .g-na{background:var(--gray);color:var(--muted);}
+
+        .card-info { padding: 0.75rem 1.1rem; display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem; font-size: 0.88rem; }
+        .ci { display: flex; justify-content: space-between; gap: 0.5rem; }
+        .ci-lbl { color: var(--muted); }
+        .ci-val { font-weight: 600; text-align: right; }
+
+        .card-stats { padding: 0.75rem 1.1rem; background: rgba(0,0,0,0.25); display: flex; gap: 0; }
+        .cs { flex: 1; text-align: center; padding: 0.4rem 0; border-right: 1px solid var(--gray-light); }
+        .cs:last-child { border-right: none; }
+        .cs-num { font-family: 'Bebas Neue', sans-serif; font-size: 1.35rem; color: var(--gold); }
+        .cs-lbl { font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+
+        .card-tags { padding: 0.6rem 1.1rem; display: flex; gap: 0.4rem; flex-wrap: wrap; min-height: 2rem; }
+        .tag { padding: 0.2rem 0.6rem; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid; }
+        .t-gold{border-color:var(--gold);color:var(--gold);}
+        .t-green{border-color:var(--success);color:var(--success);}
+        .t-blue{border-color:#2980b9;color:#2980b9);}
+        .t-purple{border-color:#8e44ad;color:#8e44ad;}
+        .t-orange{border-color:#e67e22;color:#e67e22;}
+        .t-red{border-color:var(--red);color:var(--red);}
+
+        /* ── MODAL ── */
+        .overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.92); z-index: 200;
+            padding: 2rem; overflow-y: auto; align-items: flex-start; justify-content: center;
+        }
+        .overlay.open { display: flex; }
+        .modal {
+            background: var(--dark); border: 1.5px solid var(--gold);
+            max-width: 780px; width: 100%; margin-top: 1rem; position: relative;
+        }
+        .modal-x {
+            position: absolute; top: 0.75rem; right: 0.75rem; width: 36px; height: 36px;
+            background: var(--black); border: 1px solid var(--gray-light); color: var(--text);
+            font-size: 1.3rem; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: all 0.2s; z-index: 5;
+        }
+        .modal-x:hover { border-color: var(--gold); color: var(--gold); }
+        .modal-btns { position: absolute; top: 0.75rem; right: 3.25rem; display: flex; gap: 0.4rem; z-index: 5; }
+        .mab {
+            width: 36px; height: 36px; background: var(--black); border: 1px solid var(--gray-light);
+            color: var(--text); font-size: 0.95rem; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; transition: all 0.2s;
+        }
+        .mab:hover { border-color: var(--gold); color: var(--gold); }
+        .mab.del:hover { border-color: var(--red); color: var(--red); }
+        .mab.editing { background: var(--gold); border-color: var(--gold); color: var(--black); }
+
+        .modal-head {
+            padding: 1.75rem 1.75rem 1.25rem;
+            background: linear-gradient(135deg, #111 0%, #2a2a2a 100%);
+            border-bottom: 2px solid var(--gold);
+        }
+        .modal-name { font-family: 'Bebas Neue', sans-serif; font-size: 2.2rem; letter-spacing: 2px; margin-bottom: 0.4rem; }
+        .modal-meta { display: flex; gap: 1.5rem; flex-wrap: wrap; color: var(--muted); font-size: 0.9rem; }
+        .modal-body { padding: 1.75rem; }
+        .msec { margin-bottom: 1.75rem; }
+        .msec-title {
+            font-family: 'Oswald', sans-serif; font-size: 0.95rem; color: var(--gold);
+            text-transform: uppercase; letter-spacing: 2px; margin-bottom: 0.85rem;
+            padding-bottom: 0.4rem; border-bottom: 1px solid var(--gray-light);
+        }
+        .mstats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px,1fr)); gap: 0.75rem; }
+        .mstat { background: var(--black); padding: 0.85rem; text-align: center; border: 1px solid var(--gray-light); }
+        .mstat-val { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--gold); }
+        .mstat-lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+        .mnotes { background: var(--black); padding: 1rem; border-left: 3px solid var(--gold); color: var(--muted); line-height: 1.6; font-size: 0.92rem; }
+
+        /* ── FORMS ── */
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px,1fr)); gap: 0.85rem; }
+        .fg { display: flex; flex-direction: column; gap: 0.35rem; }
+        .fg label { font-size: 0.72rem; color: var(--gold); text-transform: uppercase; letter-spacing: 1px; }
+        .fg input, .fg select, .fg textarea {
+            padding: 0.65rem; background: var(--black); border: 1px solid var(--gray-light);
+            color: var(--text); font-family: 'Rajdhani', sans-serif; font-size: 0.95rem;
+        }
+        .fg input:focus, .fg select:focus, .fg textarea:focus { outline: none; border-color: var(--gold); }
+        .fg textarea { min-height: 75px; resize: vertical; }
+        .fsec-title {
+            font-family: 'Oswald', sans-serif; font-size: 0.9rem; color: var(--gold);
+            text-transform: uppercase; letter-spacing: 2px; margin: 1.25rem 0 0.75rem;
+            padding-bottom: 0.4rem; border-bottom: 1px solid var(--gray-light);
+        }
+        .fsec-title:first-child { margin-top: 0; }
+        .form-actions { display: flex; gap: 0.75rem; justify-content: flex-end; margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--gray-light); }
+
+        /* ── BUTTONS ── */
+        .btn { padding: 0.75rem 1.75rem; font-family: 'Oswald', sans-serif; font-size: 0.95rem; letter-spacing: 1px; text-transform: uppercase; cursor: pointer; transition: all 0.2s; border: none; }
+        .btn-gold { background: var(--gold); color: var(--black); font-weight: 700; }
+        .btn-gold:hover { background: var(--gold-light); }
+        .btn-gold:disabled { background: var(--gray-light); color: var(--muted); cursor: not-allowed; }
+        .btn-ghost { background: transparent; border: 1.5px solid var(--gray-light); color: var(--muted); }
+        .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
+        .btn-danger { background: transparent; border: 1.5px solid var(--red); color: var(--red); }
+        .btn-danger:hover { background: var(--red); color: #fff; }
+
+        /* ── ADD PLAYER PANEL ── */
+        .add-panel {
+            display: none; background: var(--dark); border: 1.5px solid var(--gold);
+            padding: 1.75rem; margin-bottom: 1.5rem;
+        }
+        .add-panel.open { display: block; }
+        .add-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.6rem; color: var(--gold); letter-spacing: 2px; margin-bottom: 1.25rem; }
+
+        /* ── LOGIN OVERLAY ── */
+        .login-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.97); z-index: 500;
+            align-items: center; justify-content: center;
+        }
+        .login-overlay.open { display: flex; }
+        .login-box {
+            background: var(--dark); border: 1.5px solid var(--gold);
+            padding: 2.5rem; width: 100%; max-width: 380px; text-align: center;
+        }
+        .login-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--gold); letter-spacing: 3px; margin-bottom: 0.5rem; }
+        .login-sub { font-size: 0.85rem; color: var(--muted); margin-bottom: 1.75rem; }
+        .login-box input {
+            width: 100%; padding: 0.85rem; background: var(--black);
+            border: 1.5px solid var(--gray-light); color: var(--text);
+            font-family: 'Rajdhani', sans-serif; font-size: 1.05rem; text-align: center;
+            letter-spacing: 3px; margin-bottom: 1rem;
+        }
+        .login-box input:focus { outline: none; border-color: var(--gold); }
+        .login-err { color: var(--red); font-size: 0.85rem; margin-top: 0.5rem; min-height: 1.2rem; }
+
+        /* ── CONFIRM ── */
+        .confirm-overlay {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,0.96); z-index: 400;
+            align-items: center; justify-content: center;
+        }
+        .confirm-overlay.open { display: flex; }
+        .confirm-box { background: var(--dark); border: 1.5px solid var(--red); padding: 2.25rem; max-width: 380px; width: 90%; text-align: center; }
+        .confirm-title { font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: var(--red); letter-spacing: 2px; margin-bottom: 0.75rem; }
+        .confirm-msg { color: var(--muted); margin-bottom: 1.75rem; line-height: 1.5; }
+        .confirm-acts { display: flex; gap: 0.75rem; justify-content: center; }
+
+        /* ── TOAST ── */
+        .toast {
+            position: fixed; bottom: 1.75rem; right: 1.75rem;
+            background: var(--gold); color: var(--black);
+            padding: 0.85rem 1.75rem; font-family: 'Oswald', sans-serif;
+            font-size: 0.95rem; letter-spacing: 1px; text-transform: uppercase;
+            z-index: 9999; transform: translateY(80px); opacity: 0;
+            transition: all 0.35s ease; pointer-events: none;
+        }
+        .toast.show { transform: translateY(0); opacity: 1; }
+        .toast.err { background: var(--red); color: #fff; }
+
+        /* ── EMPTY STATE ── */
+        .empty { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+        .empty-icon { font-size: 3rem; margin-bottom: 1rem; }
+        .empty-text { font-family: 'Oswald', sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+
+        /* ── CONFIG NOTICE ── */
+        .config-notice {
+            background: #1a0a00; border: 2px solid #e67e22; padding: 1.5rem 2rem;
+            margin-bottom: 1.5rem; font-size: 0.95rem; line-height: 1.7;
+        }
+        .config-notice strong { color: #e67e22; }
+        .config-notice code { background: #111; padding: 0.1rem 0.4rem; color: var(--gold-light); font-size: 0.9rem; }
+
+        @media (max-width: 768px) {
+            .header { padding: 1rem; }
+            .main { padding: 1rem; }
+            .stats-bar { grid-template-columns: repeat(2,1fr); }
+            .grid { grid-template-columns: 1fr; }
+            .logo-name { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+    <div class="logo">
+        <div class="logo-mark">⚾</div>
+        <div>
+            <div class="logo-name">ARCANE BASEBALL</div>
+            <div class="logo-sub">Player Development Database</div>
+        </div>
+    </div>
+    <div class="header-right">
+        <button class="admin-btn" id="adminToggleBtn" onclick="handleAdminToggle()">Admin Login</button>
+    </div>
+</header>
+
+<main class="main">
+
+    <!-- CONFIG NOTICE (shown until Supabase keys are added) -->
+    <div class="config-notice" id="configNotice">
+        <strong>⚙️ Setup Required:</strong> Replace the two placeholders at the top of this file's &lt;script&gt; section with your Supabase credentials:<br>
+        <code>SUPABASE_URL</code> → your Project URL &nbsp;|&nbsp; <code>SUPABASE_KEY</code> → your anon/public key<br>
+        Then re-upload to GitHub Pages. Players will load automatically once connected.
+    </div>
+
+    <!-- STATS BAR -->
+    <div class="stats-bar">
+        <div class="stat-tile"><div class="stat-num" id="statTotal">—</div><div class="stat-lbl">Total Players</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statVelo">—</div><div class="stat-lbl">Avg Max Exit Velo</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statElite">—</div><div class="stat-lbl">Elite Prospects</div></div>
+        <div class="stat-tile"><div class="stat-num" id="statTwoWay">—</div><div class="stat-lbl">Two-Way Players</div></div>
+    </div>
+
+    <!-- ADD PLAYER PANEL (admin only) -->
+    <div class="add-panel" id="addPanel">
+        <div class="add-title">Add New Player</div>
+        <div class="fsec-title">Personal Info</div>
+        <div class="form-grid">
+            <div class="fg"><label>Player Name *</label><input type="text" id="aName" placeholder="First Last"></div>
+            <div class="fg"><label>Date of Birth</label><input type="date" id="aDOB"></div>
+            <div class="fg"><label>Height</label><input type="text" id="aHeight" placeholder="6'2&quot;"></div>
+            <div class="fg"><label>Weight (lbs)</label><input type="number" id="aWeight"></div>
+            <div class="fg"><label>Grad Year</label>
+                <select id="aGradYear"><option value="">—</option><option>2025</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2032</option><option>2033</option><option>2034</option><option>2035</option></select>
+            </div>
+            <div class="fg"><label>Position</label><input type="text" id="aPosition" placeholder="Catcher, SS, RHP..."></div>
+            <div class="fg"><label>Bats</label><select id="aBats"><option value="">—</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+            <div class="fg"><label>Throws</label><select id="aThrows"><option value="">—</option><option>Right</option><option>Left</option></select></div>
+        </div>
+        <div class="fsec-title">Performance Metrics</div>
+        <div class="form-grid">
+            <div class="fg"><label>Max Exit Velo (mph)</label><input type="number" step="0.1" id="aMaxVelo"></div>
+            <div class="fg"><label>Avg Exit Velo (mph)</label><input type="number" step="0.1" id="aAvgVelo"></div>
+            <div class="fg"><label>Bat Speed (mph)</label><input type="number" step="0.1" id="aBatSpeed"></div>
+            <div class="fg"><label>Pitch Velo (mph)</label><input type="number" step="0.1" id="aPitchVelo"></div>
+            <div class="fg"><label>Best HHA</label><input type="number" step="0.001" id="aHHA" placeholder="0.350"></div>
+            <div class="fg"><label>Grade</label>
+                <select id="aGrade"><option value="">—</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select>
+            </div>
+            <div class="fg"><label>Player Type</label><select id="aType"><option>Hitter</option><option>Pitcher</option><option>Two-Way</option></select></div>
+        </div>
+        <div class="fsec-title">Scouting</div>
+        <div class="fg" style="margin-bottom:0.85rem"><label>Tags (comma separated)</label><input type="text" id="aTags" placeholder="Elite Power, D1 Prospect, Two-Way"></div>
+        <div class="fg"><label>Scouting Notes</label><textarea id="aNotes" rows="3"></textarea></div>
+        <div class="form-actions">
+            <button class="btn btn-ghost" onclick="closeAddPanel()">Cancel</button>
+            <button class="btn btn-gold" id="addSubmitBtn" onclick="submitAdd()">Add Player</button>
+        </div>
+    </div>
+
+    <!-- CONTROLS -->
+    <div class="controls">
+        <div class="search-wrap"><input type="text" id="searchInput" placeholder="Search players..." oninput="applyFilters()"></div>
+        <select class="fsel" id="gradeFilter" onchange="applyFilters()">
+            <option value="">All Grades</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option>
+        </select>
+        <select class="fsel" id="yearFilter" onchange="applyFilters()">
+            <option value="">All Classes</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2034</option>
+        </select>
+        <select class="fsel" id="typeFilter" onchange="applyFilters()">
+            <option value="">All Types</option><option>Hitter</option><option>Pitcher</option><option>Two-Way</option>
+        </select>
+        <!-- Admin: add player button -->
+        <button class="btn btn-gold" id="addPlayerBtn" style="display:none" onclick="openAddPanel()">+ Add Player</button>
+    </div>
+
+    <!-- PLAYER GRID -->
+    <div id="loadingState" class="loading-state"><div class="spinner"></div>Loading roster...</div>
+    <div class="grid" id="playerGrid" style="display:none"></div>
+    <div class="empty" id="emptyState" style="display:none">
+        <div class="empty-icon">⚾</div>
+        <div class="empty-text">No players found</div>
+    </div>
+
+</main>
+
+<!-- PLAYER DETAIL MODAL -->
+<div class="overlay" id="playerModal">
+    <div class="modal">
+        <div class="modal-btns">
+            <button class="mab" id="editModalBtn" style="display:none" onclick="toggleEditMode()" title="Edit">✏️</button>
+            <button class="mab del" id="deleteModalBtn" style="display:none" onclick="promptDelete()" title="Delete">🗑️</button>
+        </div>
+        <button class="modal-x" onclick="closeModal()">×</button>
+        <div class="modal-head">
+            <div class="modal-name" id="mName"></div>
+            <div class="modal-meta" id="mMeta"></div>
+        </div>
+        <div class="modal-body">
+            <div id="viewPanel"></div>
+            <div id="editPanel" style="display:none">
+                <div class="fsec-title">Personal Info</div>
+                <div class="form-grid">
+                    <div class="fg"><label>Name *</label><input type="text" id="eName"></div>
+                    <div class="fg"><label>Date of Birth</label><input type="date" id="eDOB"></div>
+                    <div class="fg"><label>Height</label><input type="text" id="eHeight"></div>
+                    <div class="fg"><label>Weight (lbs)</label><input type="number" id="eWeight"></div>
+                    <div class="fg"><label>Grad Year</label>
+                        <select id="eGradYear"><option value="">—</option><option>2025</option><option>2026</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2032</option><option>2033</option><option>2034</option><option>2035</option></select>
+                    </div>
+                    <div class="fg"><label>Position</label><input type="text" id="ePosition"></div>
+                    <div class="fg"><label>Bats</label><select id="eBats"><option value="">—</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
+                    <div class="fg"><label>Throws</label><select id="eThrows"><option value="">—</option><option>Right</option><option>Left</option></select></div>
+                </div>
+                <div class="fsec-title">Performance Metrics</div>
+                <div class="form-grid">
+                    <div class="fg"><label>Max Exit Velo</label><input type="number" step="0.1" id="eMaxVelo"></div>
+                    <div class="fg"><label>Avg Exit Velo</label><input type="number" step="0.1" id="eAvgVelo"></div>
+                    <div class="fg"><label>Bat Speed</label><input type="number" step="0.1" id="eBatSpeed"></div>
+                    <div class="fg"><label>Pitch Velo</label><input type="number" step="0.1" id="ePitchVelo"></div>
+                    <div class="fg"><label>Best HHA</label><input type="number" step="0.001" id="eHHA"></div>
+                    <div class="fg"><label>Grade</label>
+                        <select id="eGrade"><option value="">—</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select>
+                    </div>
+                    <div class="fg"><label>Type</label><select id="eType"><option>Hitter</option><option>Pitcher</option><option>Two-Way</option></select></div>
+                </div>
+                <div class="fsec-title">Scouting</div>
+                <div class="fg" style="margin-bottom:0.85rem"><label>Tags (comma separated)</label><input type="text" id="eTags"></div>
+                <div class="fg"><label>Notes</label><textarea id="eNotes" rows="4"></textarea></div>
+                <div class="form-actions">
+                    <button class="btn btn-ghost" onclick="cancelEdit()">Cancel</button>
+                    <button class="btn btn-gold" id="saveEditBtn" onclick="saveEdit()">Save Changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="loginOverlay">
+    <div class="login-box">
+        <div class="login-title">Admin Access</div>
+        <div class="login-sub">Enter your admin password to edit the roster</div>
+        <input type="password" id="pwInput" placeholder="••••••••" onkeydown="if(e.key==='Enter')checkPW(event)">
+        <button class="btn btn-gold" style="width:100%" onclick="checkPW(event)">Unlock</button>
+        <div class="login-err" id="loginErr"></div>
+        <button class="btn btn-ghost" style="width:100%;margin-top:0.5rem" onclick="closeLogin()">Cancel</button>
+    </div>
+</div>
+
+<!-- CONFIRM DELETE -->
+<div class="confirm-overlay" id="confirmOverlay">
+    <div class="confirm-box">
+        <div class="confirm-title">Delete Player</div>
+        <p class="confirm-msg" id="confirmMsg"></p>
+        <div class="confirm-acts">
+            <button class="btn btn-ghost" onclick="closeConfirm()">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+//  ⚙️  CONFIGURATION — Replace these two values with yours
+// ═══════════════════════════════════════════════════════════════════
+const SUPABASE_URL = 'https://tkcidrbydqehbohbzqra.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_xfRVeQeWi4yN8Bq0VFNHOg_8Drk8U6z';
+
+//  Admin password — change this to something secure
+const ADMIN_PASSWORD = 'arcane2024';
+// ═══════════════════════════════════════════════════════════════════
+
+const CONFIGURED = SUPABASE_URL !== 'YOUR_SUPABASE_URL';
+
+// ── State ──────────────────────────────────────────────────────────
+let allPlayers = [];
+let currentId = null;
+let isAdmin = false;
+let isEditing = false;
+
+// ── Supabase helpers ───────────────────────────────────────────────
+const SB_HEADERS = {
+    'apikey': SUPABASE_KEY,
+    'Authorization': `Bearer ${SUPABASE_KEY}`,
+    'Content-Type': 'application/json',
+    'Prefer': 'return=representation'
+};
+
+async function sbGet() {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/players?select=*&order=name.asc`, { headers: SB_HEADERS });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+async function sbInsert(data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/players`, {
+        method: 'POST', headers: SB_HEADERS, body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+async function sbUpdate(id, data) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${id}`, {
+        method: 'PATCH', headers: SB_HEADERS, body: JSON.stringify(data)
+    });
+    if (!r.ok) throw new Error(await r.text());
+    return r.json();
+}
+
+async function sbDelete(id) {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/players?id=eq.${id}`, {
+        method: 'DELETE', headers: SB_HEADERS
+    });
+    if (!r.ok) throw new Error(await r.text());
+}
+
+// ── Init ───────────────────────────────────────────────────────────
+async function init() {
+    if (!CONFIGURED) {
+        document.getElementById('loadingState').style.display = 'none';
+        document.getElementById('playerGrid').style.display = 'grid';
+        document.getElementById('configNotice').style.display = 'block';
+        updateStats([]);
+        return;
+    }
+    document.getElementById('configNotice').style.display = 'none';
+    try {
+        allPlayers = await sbGet();
+        renderPlayers(allPlayers);
+    } catch(e) {
+        document.getElementById('loadingState').innerHTML = `<div style="color:var(--red)">⚠ Could not connect to database.<br><small>${e.message}</small></div>`;
+    }
+}
+
+// ── Render ─────────────────────────────────────────────────────────
+function renderPlayers(list) {
+    const grid = document.getElementById('playerGrid');
+    const loading = document.getElementById('loadingState');
+    const empty = document.getElementById('emptyState');
+    loading.style.display = 'none';
+
+    if (!list.length) {
+        grid.style.display = 'none';
+        empty.style.display = 'block';
+        updateStats([]);
+        return;
+    }
+
+    empty.style.display = 'none';
+    grid.style.display = 'grid';
+    grid.innerHTML = '';
+
+    list.forEach((p, i) => {
+        const age = calcAge(p.dob);
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.style.animationDelay = (i * 0.035) + 's';
+        card.onclick = () => openModal(p.id);
+
+        // stats row
+        let stats = '';
+        if (p.max_velo) stats += `<div class="cs"><div class="cs-num">${p.max_velo}</div><div class="cs-lbl">Max Velo</div></div>`;
+        if (p.bat_speed) stats += `<div class="cs"><div class="cs-num">${p.bat_speed}</div><div class="cs-lbl">Bat Speed</div></div>`;
+        if (p.pitch_velo) stats += `<div class="cs"><div class="cs-num">${p.pitch_velo}</div><div class="cs-lbl">Pitch Velo</div></div>`;
+        if (p.hha) stats += `<div class="cs"><div class="cs-num">${fmtHHA(p.hha)}</div><div class="cs-lbl">HHA</div></div>`;
+
+        // tags
+        const tags = (p.tags || []).slice(0, 3).map(t => `<span class="tag ${tagCls(t)}">${t}</span>`).join('');
+
+        card.innerHTML = `
+            <div class="card-head">
+                <div>
+                    <div class="card-name">${p.name}</div>
+                    <div class="card-class">Class of ${p.grad_year || 'N/A'}</div>
+                </div>
+                <div class="grade-badge ${gradeCls(p.grade)}">${p.grade || '—'}</div>
+            </div>
+            <div class="card-info">
+                <div class="ci"><span class="ci-lbl">Age</span><span class="ci-val">${age || 'N/A'}</span></div>
+                <div class="ci"><span class="ci-lbl">Position</span><span class="ci-val">${p.position || 'N/A'}</span></div>
+                <div class="ci"><span class="ci-lbl">Height</span><span class="ci-val">${p.height || 'N/A'}</span></div>
+                <div class="ci"><span class="ci-lbl">Weight</span><span class="ci-val">${p.weight ? p.weight + ' lbs' : 'N/A'}</span></div>
+            </div>
+            ${stats ? `<div class="card-stats">${stats}</div>` : ''}
+            <div class="card-tags">${tags}</div>`;
+
+        grid.appendChild(card);
+    });
+
+    updateStats(list);
+}
+
+function updateStats(list) {
+    document.getElementById('statTotal').textContent = list.length || '—';
+    const vp = list.filter(p => p.max_velo);
+    document.getElementById('statVelo').textContent = vp.length
+        ? (vp.reduce((s,p) => s + p.max_velo, 0) / vp.length).toFixed(1) : '—';
+    document.getElementById('statElite').textContent = list.filter(p => ['A+','A','A-'].includes(p.grade)).length || (list.length ? 0 : '—');
+    document.getElementById('statTwoWay').textContent = list.filter(p => p.type === 'Two-Way').length || (list.length ? 0 : '—');
+}
+
+function applyFilters() {
+    const s = document.getElementById('searchInput').value.toLowerCase();
+    const gf = document.getElementById('gradeFilter').value;
+    const yf = document.getElementById('yearFilter').value;
+    const tf = document.getElementById('typeFilter').value;
+    renderPlayers(allPlayers.filter(p =>
+        p.name.toLowerCase().includes(s) &&
+        (!gf || p.grade === gf) &&
+        (!yf || String(p.grad_year) === yf) &&
+        (!tf || p.type === tf)
+    ));
+}
+
+// ── Modal / View ───────────────────────────────────────────────────
+function openModal(id) {
+    currentId = id; isEditing = false;
+    const p = allPlayers.find(x => x.id === id);
+    if (!p) return;
+    renderView(p);
+    document.getElementById('editPanel').style.display = 'none';
+    document.getElementById('viewPanel').style.display = 'block';
+    document.getElementById('editModalBtn').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('deleteModalBtn').style.display = isAdmin ? 'flex' : 'none';
+    document.getElementById('editModalBtn').classList.remove('editing');
+    document.getElementById('playerModal').classList.add('open');
+}
+
+function renderView(p) {
+    const age = calcAge(p.dob);
+    document.getElementById('mName').textContent = p.name;
+    document.getElementById('mMeta').innerHTML =
+        `<span>Class of ${p.grad_year || 'N/A'}</span>
+         <span>${p.position || 'N/A'}</span>
+         <span>${p.height || 'N/A'}${p.weight ? ' / ' + p.weight + ' lbs' : ''}</span>
+         <span>Age: ${age || 'N/A'}</span>
+         <span style="color:var(--gold);font-weight:700">${p.grade || '—'}</span>`;
+
+    let html = '';
+    if (p.max_velo || p.avg_velo || p.bat_speed || p.hha) {
+        html += `<div class="msec"><div class="msec-title">Hitting Metrics</div><div class="mstats">`;
+        if (p.max_velo) html += mstat(p.max_velo, 'Max Exit Velo');
+        if (p.avg_velo) html += mstat(p.avg_velo, 'Avg Exit Velo');
+        if (p.bat_speed) html += mstat(p.bat_speed, 'Bat Speed');
+        if (p.hha) html += mstat(fmtHHA(p.hha), 'Best HHA');
+        html += `</div></div>`;
+    }
+    if (p.pitch_velo) html += `<div class="msec"><div class="msec-title">Pitching Metrics</div><div class="mstats">${mstat(p.pitch_velo, 'Pitch Velo')}</div></div>`;
+    html += `<div class="msec"><div class="msec-title">Player Info</div><div class="mstats">
+        ${mstat(p.type || '—', 'Type')}
+        ${mstat(p.bats || '—', 'Bats')}
+        ${mstat(p.throws || '—', 'Throws')}
+    </div></div>`;
+    if (p.notes) html += `<div class="msec"><div class="msec-title">Scouting Notes</div><div class="mnotes">${p.notes}</div></div>`;
+    if (p.tags && p.tags.length) {
+        html += `<div class="msec"><div class="msec-title">Tags</div><div class="card-tags" style="padding:0">`;
+        p.tags.forEach(t => { html += `<span class="tag ${tagCls(t)}">${t}</span>`; });
+        html += `</div></div>`;
+    }
+    document.getElementById('viewPanel').innerHTML = html;
+}
+
+function mstat(val, lbl) { return `<div class="mstat"><div class="mstat-val">${val}</div><div class="mstat-lbl">${lbl}</div></div>`; }
+
+function closeModal() {
+    document.getElementById('playerModal').classList.remove('open');
+    currentId = null; isEditing = false;
+}
+
+// ── Edit ───────────────────────────────────────────────────────────
+function toggleEditMode() { isEditing ? cancelEdit() : enterEdit(); }
+
+function enterEdit() {
+    const p = allPlayers.find(x => x.id === currentId);
+    if (!p) return;
+    sv('eName', p.name); sv('eDOB', p.dob); sv('eHeight', p.height);
+    sv('eWeight', p.weight); sv('eGradYear', p.grad_year); sv('ePosition', p.position);
+    sv('eBats', p.bats); sv('eThrows', p.throws); sv('eMaxVelo', p.max_velo);
+    sv('eAvgVelo', p.avg_velo); sv('eBatSpeed', p.bat_speed); sv('ePitchVelo', p.pitch_velo);
+    sv('eHHA', p.hha); sv('eGrade', p.grade); sv('eType', p.type || 'Hitter');
+    sv('eNotes', p.notes); sv('eTags', (p.tags || []).join(', '));
+    document.getElementById('viewPanel').style.display = 'none';
+    document.getElementById('editPanel').style.display = 'block';
+    document.getElementById('editModalBtn').classList.add('editing');
+    document.getElementById('editModalBtn').title = 'Cancel Edit';
+    isEditing = true;
+}
+
+function cancelEdit() {
+    document.getElementById('editPanel').style.display = 'none';
+    document.getElementById('viewPanel').style.display = 'block';
+    document.getElementById('editModalBtn').classList.remove('editing');
+    document.getElementById('editModalBtn').title = 'Edit';
+    isEditing = false;
+}
+
+async function saveEdit() {
+    const name = gv('eName').trim();
+    if (!name) { showToast('Name is required', true); return; }
+    const btn = document.getElementById('saveEditBtn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    const payload = buildPayload('e');
+    try {
+        const updated = await sbUpdate(currentId, payload);
+        const idx = allPlayers.findIndex(p => p.id === currentId);
+        if (idx !== -1) allPlayers[idx] = updated[0] || { ...allPlayers[idx], ...payload };
+        applyFilters();
+        cancelEdit();
+        renderView(allPlayers.find(p => p.id === currentId));
+        showToast(name + ' updated');
+    } catch(e) {
+        showToast('Save failed: ' + e.message, true);
+    }
+    btn.disabled = false; btn.textContent = 'Save Changes';
+}
+
+// ── Add Player ─────────────────────────────────────────────────────
+function openAddPanel() {
+    clearAddForm();
+    document.getElementById('addPanel').classList.add('open');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function closeAddPanel() { document.getElementById('addPanel').classList.remove('open'); }
+
+async function submitAdd() {
+    const name = gv('aName').trim();
+    if (!name) { showToast('Name is required', true); return; }
+    const btn = document.getElementById('addSubmitBtn');
+    btn.disabled = true; btn.textContent = 'Adding...';
+    const payload = buildPayload('a');
+    // auto-tags
+    const tags = payload.tags || [];
+    if (payload.max_velo >= 100 && !tags.includes('100 MPH Club')) tags.push('100 MPH Club');
+    if (payload.max_velo >= 95 && !tags.includes('Elite Power')) tags.push('Elite Power');
+    if (payload.type === 'Two-Way' && !tags.includes('Two-Way')) tags.push('Two-Way');
+    if (['A+','A','A-'].includes(payload.grade) && !tags.includes('Elite Prospect')) tags.push('Elite Prospect');
+    payload.tags = tags;
+    try {
+        const result = await sbInsert(payload);
+        allPlayers.push(result[0]);
+        allPlayers.sort((a,b) => a.name.localeCompare(b.name));
+        applyFilters();
+        closeAddPanel();
+        showToast(name + ' added to roster');
+    } catch(e) {
+        showToast('Add failed: ' + e.message, true);
+    }
+    btn.disabled = false; btn.textContent = 'Add Player';
+}
+
+function clearAddForm() {
+    ['aName','aHeight','aPosition','aNotes','aTags'].forEach(id => sv(id, ''));
+    ['aDOB','aGradYear','aBats','aThrows','aGrade'].forEach(id => sv(id, ''));
+    ['aWeight','aMaxVelo','aAvgVelo','aBatSpeed','aPitchVelo','aHHA'].forEach(id => sv(id, ''));
+    sv('aType', 'Hitter');
+}
+
+// ── Delete ─────────────────────────────────────────────────────────
+function promptDelete() {
+    const p = allPlayers.find(x => x.id === currentId);
+    if (!p) return;
+    document.getElementById('confirmMsg').textContent = `Delete ${p.name} from the roster? This cannot be undone.`;
+    document.getElementById('confirmOverlay').classList.add('open');
+}
+function closeConfirm() { document.getElementById('confirmOverlay').classList.remove('open'); }
+
+async function confirmDelete() {
+    const p = allPlayers.find(x => x.id === currentId);
+    if (!p) return;
+    try {
+        await sbDelete(currentId);
+        allPlayers = allPlayers.filter(x => x.id !== currentId);
+        applyFilters();
+        closeConfirm();
+        closeModal();
+        showToast(p.name + ' removed');
+    } catch(e) {
+        showToast('Delete failed: ' + e.message, true);
+    }
+}
+
+// ── Admin auth ─────────────────────────────────────────────────────
+function handleAdminToggle() {
+    if (isAdmin) {
+        logoutAdmin();
+    } else {
+        document.getElementById('loginOverlay').classList.add('open');
+        setTimeout(() => document.getElementById('pwInput').focus(), 100);
+    }
+}
+
+function checkPW(e) {
+    if (e) e.preventDefault();
+    const pw = document.getElementById('pwInput').value;
+    if (pw === ADMIN_PASSWORD) {
+        isAdmin = true;
+        document.getElementById('loginOverlay').classList.remove('open');
+        document.getElementById('pwInput').value = '';
+        document.getElementById('loginErr').textContent = '';
+        document.getElementById('adminToggleBtn').textContent = 'Admin: ON';
+        document.getElementById('adminToggleBtn').classList.add('active');
+        document.getElementById('addPlayerBtn').style.display = 'inline-block';
+        showToast('Admin mode enabled');
+    } else {
+        document.getElementById('loginErr').textContent = 'Incorrect password';
+        document.getElementById('pwInput').value = '';
+        document.getElementById('pwInput').focus();
+    }
+}
+
+function logoutAdmin() {
+    isAdmin = false;
+    closeAddPanel();
+    document.getElementById('adminToggleBtn').textContent = 'Admin Login';
+    document.getElementById('adminToggleBtn').classList.remove('active');
+    document.getElementById('addPlayerBtn').style.display = 'none';
+    document.getElementById('editModalBtn').style.display = 'none';
+    document.getElementById('deleteModalBtn').style.display = 'none';
+    if (isEditing) cancelEdit();
+    showToast('Logged out');
+}
+
+function closeLogin() {
+    document.getElementById('loginOverlay').classList.remove('open');
+    document.getElementById('pwInput').value = '';
+    document.getElementById('loginErr').textContent = '';
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+function buildPayload(prefix) {
+    const tagsRaw = gv(prefix + 'Tags');
+    return {
+        name: gv(prefix + 'Name').trim(),
+        dob: gv(prefix + 'DOB') || null,
+        height: gv(prefix + 'Height') || null,
+        weight: parseInt(gv(prefix + 'Weight')) || null,
+        grad_year: parseInt(gv(prefix + 'GradYear')) || null,
+        position: gv(prefix + 'Position') || null,
+        bats: gv(prefix + 'Bats') || null,
+        throws: gv(prefix + 'Throws') || null,
+        max_velo: parseFloat(gv(prefix + 'MaxVelo')) || null,
+        avg_velo: parseFloat(gv(prefix + 'AvgVelo')) || null,
+        bat_speed: parseFloat(gv(prefix + 'BatSpeed')) || null,
+        pitch_velo: parseFloat(gv(prefix + 'PitchVelo')) || null,
+        hha: parseFloat(gv(prefix + 'HHA')) || null,
+        grade: gv(prefix + 'Grade') || null,
+        type: gv(prefix + 'Type') || 'Hitter',
+        notes: gv(prefix + 'Notes') || null,
+        tags: tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : []
+    };
+}
+
+function calcAge(dob) {
+    if (!dob) return null;
+    const t = new Date(), b = new Date(dob);
+    let a = t.getFullYear() - b.getFullYear();
+    const m = t.getMonth() - b.getMonth();
+    if (m < 0 || (m === 0 && t.getDate() < b.getDate())) a--;
+    return a;
+}
+
+function fmtHHA(v) {
+    if (!v) return null;
+    const s = String(parseFloat(v).toFixed(3));
+    return '.' + (s.split('.')[1] || '000');
+}
+
+function gradeCls(g) {
+    return {'A+':'g-ap','A':'g-a','A-':'g-am','B+':'g-bp','B':'g-b','B-':'g-bm','C+':'g-cp','C':'g-c'}[g] || 'g-na';
+}
+
+function tagCls(t) {
+    if (!t) return 't-orange';
+    if (t.includes('Elite') || t.includes('100 MPH') || t.includes('Breakthrough')) return 't-gold';
+    if (t.includes('Varsity') || t.includes('D1') || t.includes('College')) return 't-green';
+    if (t.includes('Two-Way')) return 't-blue';
+    if (t.includes('Prospect') || t.includes('Pro') || t.includes('Upside') || t.includes('Trending')) return 't-purple';
+    if (t.includes('Alert') || t.includes('Intervention') || t.includes('Regression')) return 't-red';
+    return 't-orange';
+}
+
+function gv(id) { const el = document.getElementById(id); return el ? el.value : ''; }
+function sv(id, v) { const el = document.getElementById(id); if (el) el.value = (v == null ? '' : v); }
+
+function showToast(msg, err) {
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.className = 'toast' + (err ? ' err' : '');
+    el.classList.add('show');
+    setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ── Event listeners ────────────────────────────────────────────────
+document.getElementById('playerModal').addEventListener('click', function(e) { if (e.target === this) closeModal(); });
+document.getElementById('loginOverlay').addEventListener('click', function(e) { if (e.target === this) closeLogin(); });
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        if (document.getElementById('confirmOverlay').classList.contains('open')) closeConfirm();
+        else if (document.getElementById('loginOverlay').classList.contains('open')) closeLogin();
+        else if (isEditing) cancelEdit();
+        else closeModal();
+    }
+    if (e.key === 'Enter' && document.getElementById('loginOverlay').classList.contains('open')) checkPW(e);
+});
+
+init();
+</script>
+</body>
+</html>
