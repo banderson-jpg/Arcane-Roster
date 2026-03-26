@@ -216,6 +216,7 @@ canvas.trend{width:100%;height:130px;display:block;}
   </div>
   <div class="topbar-right">
     <span style="font-size:0.8rem;color:rgba(255,255,255,0.5);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;" id="playerCount"></span>
+    <button class="tbtn" id="playerLoginBtn" onclick="handlePlayerLogin()">Player Login</button>
     <button class="tbtn" id="adminBtn" onclick="handleAdminToggle()">Admin Login</button>
   </div>
 </div>
@@ -315,6 +316,31 @@ canvas.trend{width:100%;height:130px;display:block;}
   </div>
 </div>
 
+<!-- PLAYER LOGIN -->
+<div class="login-overlay" id="playerLoginOverlay">
+  <div class="login-box">
+    <div class="login-title" style="color:var(--gold)">Player Login</div>
+    <div class="login-sub" id="playerLoginSub">Enter your name and password to edit your profile</div>
+    <div style="text-align:left;margin-bottom:0.75rem">
+      <div class="fg" style="margin-bottom:0.65rem">
+        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Your Name</label>
+        <input type="text" id="playerNameInput" placeholder="First Last" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;">
+      </div>
+      <div class="fg" id="playerPWGroup">
+        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Password</label>
+        <input type="password" id="playerPWInput" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
+      </div>
+      <div class="fg" id="playerPWConfirmGroup" style="display:none;margin-top:0.65rem">
+        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Confirm Password</label>
+        <input type="password" id="playerPWConfirm" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
+      </div>
+    </div>
+    <button class="btn btn-gold" style="width:100%" onclick="checkPlayerPW()">Continue</button>
+    <div class="login-err" id="playerLoginErr"></div>
+    <button class="btn btn-ghost" style="width:100%;margin-top:0.5rem" onclick="closePlayerLogin()">Cancel</button>
+  </div>
+</div>
+
 <!-- CONFIRM -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
@@ -336,6 +362,7 @@ const ADMIN_PASSWORD = 'arcane2024';
 
 const SBH = {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'};
 let allPlayers=[], allSessions=[], currentId=null, isAdmin=false, currentTab='overview';
+let playerSession=null; // {id, name} when a player is logged in
 
 async function sbGet(t,q=''){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{headers:SBH});if(!r.ok)throw new Error(await r.text());return r.json();}
 async function sbPost(t,d){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}`,{method:'POST',headers:SBH,body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
@@ -440,9 +467,9 @@ function renderProfile(p){
             ${p.twitter?`<a class="social-btn social-tw" href="https://twitter.com/${p.twitter.replace('@','')}" target="_blank">𝕏 ${p.twitter}</a>`:''}
             ${p.schedule_url?`<a class="social-btn social-sched" href="${p.schedule_url}" target="_blank">📄 Schedule</a>`:''}
           </div>
-          <div class="prof-admin-btns ${isAdmin?'show':''}" id="profAdminBtns">
+          <div class="prof-admin-btns ${canEdit(p.id)?'show':''}" id="profAdminBtns">
             <button class="btn btn-blue btn-sm" onclick="openEditForm()">✏️ Edit Profile</button>
-            <button class="btn btn-danger btn-sm" onclick="promptDelete()">🗑️ Delete</button>
+            ${isAdmin?`<button class="btn btn-danger btn-sm" onclick="promptDelete()">🗑️ Delete</button>`:''}
           </div>
         </div>
       </div>
@@ -485,11 +512,11 @@ function renderProfile(p){
       html+=`</tbody></table></div>`;
     }
   } else if(currentTab==='videos'){
-    if(isAdmin&&videos.length<5) html+=`<div class="video-add-row"><input type="text" id="videoUrlInput" placeholder="Paste YouTube or Vimeo URL..."><button class="btn btn-gold btn-sm" onclick="addVideo()">Add Video</button></div>`;
+    if(canEdit(p.id)&&videos.length<5) html+=`<div class="video-add-row"><input type="text" id="videoUrlInput" placeholder="Paste YouTube or Vimeo URL..."><button class="btn btn-gold btn-sm" onclick="addVideo()">Add Video</button></div>`;
     if(!videos.length) html+=`<div class="empty"><div style="font-size:2rem;margin-bottom:0.5rem">🎬</div><div style="font-size:0.9rem">No highlight videos yet</div></div>`;
     else{
       html+=`<div class="videos-grid">`;
-      videos.forEach((url,i)=>{const embed=getEmbedUrl(url);if(embed) html+=`<div style="position:relative"><div class="video-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>${isAdmin?`<button onclick="removeVideo(${i})" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.92);border:1px solid var(--red);color:var(--red);cursor:pointer;padding:2px 8px;font-size:0.75rem;font-weight:700;">✕</button>`:''}</div>`;});
+      videos.forEach((url,i)=>{const embed=getEmbedUrl(url);if(embed) html+=`<div style="position:relative"><div class="video-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>${canEdit(p.id)?`<button onclick="removeVideo(${i})" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.92);border:1px solid var(--red);color:var(--red);cursor:pointer;padding:2px 8px;font-size:0.75rem;font-weight:700;">✕</button>`:''}</div>`;});
       html+=`</div>`;
     }
   }
@@ -506,8 +533,9 @@ function openEditForm(){const el=document.getElementById('editFormSection');if(e
 
 function buildEditForm(p){
   const sv=v=>v==null?'':v;
+  const playerEditing = !isAdmin && playerSession && playerSession.id===p.id;
   return `<div class="fsec">Personal Info</div><div class="ef-grid">
-    <div class="fg"><label>Name *</label><input type="text" id="eN" value="${sv(p.name)}"></div>
+    <div class="fg"><label>Name *</label><input type="text" id="eN" value="${sv(p.name)}" ${playerEditing?'readonly style="background:#f0f3f8;color:var(--muted)"':''}></div>
     <div class="fg"><label>Date of Birth</label><input type="date" id="eDOB" value="${sv(p.dob)}"></div>
     <div class="fg"><label>Height</label><input type="text" id="eH" value="${sv(p.height)}"></div>
     <div class="fg"><label>Weight</label><input type="number" id="eW" value="${sv(p.weight)}"></div>
@@ -516,8 +544,8 @@ function buildEditForm(p){
     <div class="fg"><label>Position</label><input type="text" id="ePos" value="${sv(p.position)}"></div>
     <div class="fg"><label>Bats</label><select id="eBats"><option value="">—</option>${['Right','Left','Switch'].map(v=>`<option ${p.bats===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="fg"><label>Throws</label><select id="eThrows"><option value="">—</option>${['Right','Left'].map(v=>`<option ${p.throws===v?'selected':''}>${v}</option>`).join('')}</select></div>
-    <div class="fg"><label>Type</label><select id="eType">${['Hitter','Pitcher','Two-Way'].map(v=>`<option ${p.type===v?'selected':''}>${v}</option>`).join('')}</select></div>
-    <div class="fg"><label>Grade</label><select id="eGrade"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C'].map(v=>`<option ${p.grade===v?'selected':''}>${v}</option>`).join('')}</select></div>
+    ${!playerEditing?`<div class="fg"><label>Type</label><select id="eType">${['Hitter','Pitcher','Two-Way'].map(v=>`<option ${p.type===v?'selected':''}>${v}</option>`).join('')}</select></div>`:`<input type="hidden" id="eType" value="${sv(p.type)}">`}
+    ${!playerEditing?`<div class="fg"><label>Grade</label><select id="eGrade"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C'].map(v=>`<option ${p.grade===v?'selected':''}>${v}</option>`).join('')}</select></div>`:`<input type="hidden" id="eGrade" value="${sv(p.grade)}">`}
   </div>
   <div class="fsec">Metrics</div><div class="ef-grid">
     <div class="fg"><label>Max Exit Velo</label><input type="number" step="0.1" id="eMV" value="${sv(p.max_velo)}"></div>
@@ -538,10 +566,22 @@ function buildEditForm(p){
     <div class="fg"><label>New Schedule PDF</label><input type="file" id="ePDF" accept=".pdf"></div>
   </div>
   <div style="margin:0.5rem 0"><img id="ePhotoP" src="${p.photo_url||''}" style="width:80px;height:80px;object-fit:cover;border:2px solid var(--gold);${p.photo_url?'':'display:none'}"></div>
+  ${!playerEditing?`
   <div class="fsec">Scouting</div>
   <div class="fg" style="margin-bottom:0.75rem"><label>Tags (comma separated)</label><input type="text" id="eTags" value="${(p.tags||[]).join(', ')}"></div>
   <div class="fg" style="margin-bottom:1.1rem"><label>Notes</label><textarea id="eNotes" rows="4">${sv(p.notes)}</textarea></div>
-  <div style="display:flex;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border);">
+  `:`
+  <input type="hidden" id="eTags" value="${(p.tags||[]).join(', ')}">
+  <input type="hidden" id="eNotes" value="${sv(p.notes)}">
+  `}
+  ${playerEditing?`
+  <div class="fsec">Change Password</div>
+  <div class="ef-grid">
+    <div class="fg"><label>New Password (optional)</label><input type="password" id="eNewPW" placeholder="Leave blank to keep current"></div>
+    <div class="fg"><label>Confirm New Password</label><input type="password" id="eNewPWConfirm" placeholder=""></div>
+  </div>
+  `:''}
+  <div style="display:flex;gap:0.75rem;padding-top:1rem;border-top:1px solid var(--border);margin-top:1rem;">
     <button class="btn btn-ghost" onclick="document.getElementById('editFormSection').style.display='none'">Cancel</button>
     <button class="btn btn-gold" id="saveBtn" onclick="saveEdit()">Save Changes</button>
   </div>`;
@@ -551,6 +591,15 @@ async function saveEdit(){
   const name=gv('eN').trim(); if(!name){showToast('Name required',true);return;}
   const btn=document.getElementById('saveBtn'); btn.disabled=true;btn.textContent='Saving...';
   const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',grade:gv('eGrade')||null,max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean)};
+  // handle player password change
+  const newPW = gv('eNewPW');
+  const newPWConfirm = gv('eNewPWConfirm');
+  if(newPW){
+    if(newPW.length<4){showToast('Password must be at least 4 characters',true);btn.disabled=false;btn.textContent='Save Changes';return;}
+    if(newPW!==newPWConfirm){showToast('Passwords do not match',true);btn.disabled=false;btn.textContent='Save Changes';return;}
+    payload.player_password=newPW;
+    if(playerSession && playerSession.id===currentId) playerSession.password=newPW;
+  }
   const pu=await uploadFile('ePhoto','player-photos','image'); if(pu) payload.photo_url=pu;
   const du=await uploadFile('ePDF','player-pdfs','pdf'); if(du) payload.schedule_url=du;
   try{
@@ -622,15 +671,94 @@ async function confirmDelete(){
 function handleAdminToggle(){if(isAdmin){logoutAdmin();return;}document.getElementById('loginOverlay').classList.add('open');setTimeout(()=>document.getElementById('pwInput').focus(),100);}
 function checkPW(){
   if(document.getElementById('pwInput').value===ADMIN_PASSWORD){
-    isAdmin=true;document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';
-    document.getElementById('adminBtn').textContent='Admin: ON';document.getElementById('adminBtn').classList.add('on');document.getElementById('addBtn').style.display='block';
+    isAdmin=true; playerSession=null;
+    document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';
+    document.getElementById('adminBtn').textContent='Admin: ON';document.getElementById('adminBtn').classList.add('on');
+    document.getElementById('playerLoginBtn').style.display='none';
+    document.getElementById('addBtn').style.display='block';
     if(currentId){const btns=document.getElementById('profAdminBtns');if(btns)btns.classList.add('show');}
     showToast('Admin mode on');
   }else{document.getElementById('loginErr').textContent='Incorrect password';document.getElementById('pwInput').value='';}
 }
-function logoutAdmin(){isAdmin=false;document.getElementById('adminBtn').textContent='Admin Login';document.getElementById('adminBtn').classList.remove('on');document.getElementById('addBtn').style.display='none';if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}showToast('Logged out');}
+function logoutAdmin(){isAdmin=false;document.getElementById('adminBtn').textContent='Admin Login';document.getElementById('adminBtn').classList.remove('on');document.getElementById('addBtn').style.display='none';document.getElementById('playerLoginBtn').style.display='';if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}showToast('Logged out');}
 function closeLogin(){document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';}
 
+// ── Player Login ───────────────────────────────
+function handlePlayerLogin(){
+  if(playerSession){logoutPlayer();return;}
+  // reset form
+  document.getElementById('playerNameInput').value='';
+  document.getElementById('playerPWInput').value='';
+  document.getElementById('playerPWConfirm').value='';
+  document.getElementById('playerPWConfirmGroup').style.display='none';
+  document.getElementById('playerLoginSub').textContent='Enter your name and password to edit your profile';
+  document.getElementById('playerLoginErr').textContent='';
+  document.getElementById('playerLoginOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('playerNameInput').focus(),100);
+}
+
+async function checkPlayerPW(){
+  const nameRaw = document.getElementById('playerNameInput').value.trim();
+  const pw = document.getElementById('playerPWInput').value;
+  const pwConfirm = document.getElementById('playerPWConfirm').value;
+  const errEl = document.getElementById('playerLoginErr');
+  errEl.textContent='';
+  if(!nameRaw){errEl.textContent='Please enter your name.';return;}
+  // find player by name (case-insensitive)
+  const p = allPlayers.find(x=>x.name.toLowerCase()===nameRaw.toLowerCase());
+  if(!p){errEl.textContent='Player not found. Check spelling and try again.';return;}
+  // first time — no password set yet
+  if(!p.player_password){
+    // show confirm field
+    if(document.getElementById('playerPWConfirmGroup').style.display==='none'){
+      document.getElementById('playerPWConfirmGroup').style.display='block';
+      document.getElementById('playerLoginSub').textContent='First time? Create a password for your profile.';
+      errEl.textContent='Create a password below and click Continue again.';
+      return;
+    }
+    if(!pw){errEl.textContent='Please enter a password.';return;}
+    if(pw.length<4){errEl.textContent='Password must be at least 4 characters.';return;}
+    if(pw!==pwConfirm){errEl.textContent='Passwords do not match.';return;}
+    // save password
+    try{
+      await sbPatch('players',p.id,{player_password:pw});
+      const idx=allPlayers.findIndex(x=>x.id===p.id);
+      if(idx!==-1) allPlayers[idx].player_password=pw;
+      loginPlayer(p.id,p.name);
+    }catch(e){errEl.textContent='Error saving password. Try again.';}
+  } else {
+    // existing password
+    if(pw!==p.player_password){errEl.textContent='Incorrect password.';document.getElementById('playerPWInput').value='';return;}
+    loginPlayer(p.id,p.name);
+  }
+}
+
+function loginPlayer(id,name){
+  playerSession={id,name};
+  document.getElementById('playerLoginOverlay').classList.remove('open');
+  document.getElementById('playerLoginBtn').textContent=`Hi, ${name.split(' ')[0]}`;
+  document.getElementById('playerLoginBtn').classList.add('on');
+  // go to their profile
+  goProfile(id);
+  showToast(`Welcome, ${name.split(' ')[0]}!`);
+}
+
+function logoutPlayer(){
+  playerSession=null;
+  document.getElementById('playerLoginBtn').textContent='Player Login';
+  document.getElementById('playerLoginBtn').classList.remove('on');
+  if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}
+  showToast('Logged out');
+}
+
+function closePlayerLogin(){document.getElementById('playerLoginOverlay').classList.remove('open');}
+
+// helper: can current user edit this player?
+function canEdit(playerId){
+  if(isAdmin) return true;
+  if(playerSession && playerSession.id===playerId) return true;
+  return false;
+}
 function drawTrend(sessions){
   const canvas=document.getElementById('trendChart'); if(!canvas)return;
   const ctx=canvas.getContext('2d'),W=canvas.offsetWidth||800,H=130;
@@ -690,9 +818,11 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(document.getElementById('confirmOverlay').classList.contains('open'))closeConfirm();
     else if(document.getElementById('loginOverlay').classList.contains('open'))closeLogin();
+    else if(document.getElementById('playerLoginOverlay').classList.contains('open'))closePlayerLogin();
     else if(document.getElementById('addModal').classList.contains('open'))closeAddModal();
   }
   if(e.key==='Enter'&&document.getElementById('loginOverlay').classList.contains('open'))checkPW();
+  if(e.key==='Enter'&&document.getElementById('playerLoginOverlay').classList.contains('open'))checkPlayerPW();
 });
 
 async function ensureBuckets(){for(const b of['player-photos','player-pdfs']){await fetch(`${SUPABASE_URL}/storage/v1/bucket`,{method:'POST',headers:{...SBH,'Content-Type':'application/json'},body:JSON.stringify({id:b,name:b,public:true})}).catch(()=>{});}}
