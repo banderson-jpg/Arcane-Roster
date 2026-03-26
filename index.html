@@ -289,6 +289,7 @@ canvas.trend{width:100%;height:130px;display:block;}
       <div class="ef-grid">
         <div class="fg"><label>Instagram</label><input type="text" id="aIG" placeholder="@username"></div>
         <div class="fg"><label>Twitter / X</label><input type="text" id="aTW" placeholder="@username"></div>
+        <div class="fg"><label>Player PIN <span style="color:var(--muted);font-size:0.65rem;text-transform:none;letter-spacing:0;font-weight:400">(4 digits — text to player)</span></label><input type="text" id="aPIN" maxlength="4" inputmode="numeric" placeholder="e.g. 4821" style="letter-spacing:4px;"></div>
         <div class="fg"><label>Profile Photo</label><input type="file" id="aPhoto" accept="image/*" onchange="prevPhoto('aPhoto','aPhotoP')"></div>
         <div class="fg"><label>Schedule PDF</label><input type="file" id="aPDF" accept=".pdf"></div>
       </div>
@@ -320,19 +321,32 @@ canvas.trend{width:100%;height:130px;display:block;}
 <div class="login-overlay" id="playerLoginOverlay">
   <div class="login-box">
     <div class="login-title" style="color:var(--gold)">Player Login</div>
-    <div class="login-sub" id="playerLoginSub">Enter your name and password to edit your profile</div>
+    <div class="login-sub" id="playerLoginSub">Enter your name to get started</div>
     <div style="text-align:left;margin-bottom:0.75rem">
       <div class="fg" style="margin-bottom:0.65rem">
         <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Your Name</label>
         <input type="text" id="playerNameInput" placeholder="First Last" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;">
       </div>
-      <div class="fg" id="playerPWGroup">
-        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Password</label>
-        <input type="password" id="playerPWInput" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
+      <!-- Step 1b: PIN (shown when no password set) -->
+      <div class="fg" id="playerPINGroup" style="display:none;margin-bottom:0.65rem">
+        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">4-Digit PIN <span style="color:var(--muted);font-size:0.65rem;text-transform:none;letter-spacing:0">(given to you by Arcane)</span></label>
+        <input type="password" id="playerPINInput" placeholder="••••" maxlength="4" inputmode="numeric" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1.2rem;letter-spacing:6px;text-align:center;">
       </div>
-      <div class="fg" id="playerPWConfirmGroup" style="display:none;margin-top:0.65rem">
-        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Confirm Password</label>
-        <input type="password" id="playerPWConfirm" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
+      <!-- Step 2: Create password (shown after PIN verified) -->
+      <div id="playerCreatePWGroup" style="display:none">
+        <div class="fg" style="margin-bottom:0.65rem">
+          <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Create Password</label>
+          <input type="password" id="playerPWInput" placeholder="Min 4 characters" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:2px;">
+        </div>
+        <div class="fg">
+          <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Confirm Password</label>
+          <input type="password" id="playerPWConfirm" placeholder="Re-enter password" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:2px;">
+        </div>
+      </div>
+      <!-- Step 2 (returning): Enter existing password -->
+      <div class="fg" id="playerReturnPWGroup" style="display:none">
+        <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Password</label>
+        <input type="password" id="playerReturnPWInput" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
       </div>
     </div>
     <button class="btn btn-gold" style="width:100%" onclick="checkPlayerPW()">Continue</button>
@@ -570,9 +584,21 @@ function buildEditForm(p){
   <div class="fsec">Scouting</div>
   <div class="fg" style="margin-bottom:0.75rem"><label>Tags (comma separated)</label><input type="text" id="eTags" value="${(p.tags||[]).join(', ')}"></div>
   <div class="fg" style="margin-bottom:1.1rem"><label>Notes</label><textarea id="eNotes" rows="4">${sv(p.notes)}</textarea></div>
+  <div class="fsec">Player Access</div>
+  <div class="ef-grid">
+    <div class="fg">
+      <label>Player PIN <span style="color:var(--muted);font-size:0.65rem;text-transform:none;letter-spacing:0;font-weight:400">(4 digits — text this to the player)</span></label>
+      <input type="text" id="ePlayerPIN" value="${sv(p.player_pin)}" maxlength="4" inputmode="numeric" placeholder="e.g. 7294" style="letter-spacing:4px;font-size:1.1rem;">
+    </div>
+    <div class="fg">
+      <label>Reset Player Password <span style="color:var(--muted);font-size:0.65rem;text-transform:none;letter-spacing:0;font-weight:400">(clear to force new password)</span></label>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="resetPlayerPassword()" style="margin-top:0.25rem;width:100%">${p.player_password?'🔑 Password Set — Click to Reset':'No Password Yet'}</button>
+    </div>
+  </div>
   `:`
   <input type="hidden" id="eTags" value="${(p.tags||[]).join(', ')}">
   <input type="hidden" id="eNotes" value="${sv(p.notes)}">
+  <input type="hidden" id="ePlayerPIN" value="${sv(p.player_pin)}">
   `}
   ${playerEditing?`
   <div class="fsec">Change Password</div>
@@ -590,7 +616,7 @@ function buildEditForm(p){
 async function saveEdit(){
   const name=gv('eN').trim(); if(!name){showToast('Name required',true);return;}
   const btn=document.getElementById('saveBtn'); btn.disabled=true;btn.textContent='Saving...';
-  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',grade:gv('eGrade')||null,max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean)};
+  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',grade:gv('eGrade')||null,max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null};
   // handle player password change
   const newPW = gv('eNewPW');
   const newPWConfirm = gv('eNewPWConfirm');
@@ -609,6 +635,19 @@ async function saveEdit(){
     applyFilters(); renderProfile(allPlayers.find(p=>p.id===currentId)); showToast(name+' updated');
   }catch(e){showToast('Save failed: '+e.message,true);}
   if(btn){btn.disabled=false;btn.textContent='Save Changes';}
+}
+
+async function resetPlayerPassword(){
+  if(!currentId) return;
+  try{
+    await sbPatch('players',currentId,{player_password:null});
+    const idx=allPlayers.findIndex(p=>p.id===currentId);
+    if(idx!==-1) allPlayers[idx].player_password=null;
+    showToast('Password reset — player must re-verify with PIN');
+    // re-render edit form
+    const p=allPlayers.find(x=>x.id===currentId);
+    if(p) document.getElementById('editFormSection').querySelector('.prof-sec-body').innerHTML=buildEditForm(p);
+  }catch(e){showToast('Error: '+e.message,true);}
 }
 
 async function addSession(){
@@ -652,7 +691,7 @@ async function submitAdd(){
   const tags=gv('aTags').split(',').map(t=>t.trim()).filter(Boolean),mv=parseFloat(gv('aMV'))||null;
   if(mv>=100&&!tags.includes('100 MPH Club'))tags.push('100 MPH Club');
   if(mv>=95&&!tags.includes('Elite Power'))tags.push('Elite Power');
-  const payload={name,dob:gv('aDOB')||null,height:gv('aH')||null,weight:parseInt(gv('aW'))||null,school:gv('aSch')||null,grad_year:parseInt(gv('aGY'))||null,position:gv('aPos')||null,bats:gv('aBats')||null,throws:gv('aThrows')||null,type:gv('aType')||'Hitter',grade:gv('aGrade')||null,max_velo:mv,avg_velo:parseFloat(gv('aAV'))||null,bat_speed:parseFloat(gv('aBS'))||null,pitch_velo:parseFloat(gv('aPV'))||null,spin_rate:parseFloat(gv('aSR'))||null,hha:parseFloat(gv('aHHA'))||null,sixty_dash:parseFloat(gv('a60'))||null,pop_time:parseFloat(gv('aPT'))||null,vertical_jump:parseFloat(gv('aVJ'))||null,outfield_velo:parseFloat(gv('aOV'))||null,instagram:gv('aIG')||null,twitter:gv('aTW')||null,notes:gv('aNotes')||null,tags};
+  const payload={name,dob:gv('aDOB')||null,height:gv('aH')||null,weight:parseInt(gv('aW'))||null,school:gv('aSch')||null,grad_year:parseInt(gv('aGY'))||null,position:gv('aPos')||null,bats:gv('aBats')||null,throws:gv('aThrows')||null,type:gv('aType')||'Hitter',grade:gv('aGrade')||null,max_velo:mv,avg_velo:parseFloat(gv('aAV'))||null,bat_speed:parseFloat(gv('aBS'))||null,pitch_velo:parseFloat(gv('aPV'))||null,spin_rate:parseFloat(gv('aSR'))||null,hha:parseFloat(gv('aHHA'))||null,sixty_dash:parseFloat(gv('a60'))||null,pop_time:parseFloat(gv('aPT'))||null,vertical_jump:parseFloat(gv('aVJ'))||null,outfield_velo:parseFloat(gv('aOV'))||null,instagram:gv('aIG')||null,twitter:gv('aTW')||null,player_pin:gv('aPIN')||null,notes:gv('aNotes')||null,tags};
   const pu=await uploadFile('aPhoto','player-photos','image'); if(pu)payload.photo_url=pu;
   const du=await uploadFile('aPDF','player-pdfs','pdf'); if(du)payload.schedule_url=du;
   try{const res=await sbPost('players',payload);allPlayers.push(res[0]);allPlayers.sort((a,b)=>a.name.localeCompare(b.name));applyFilters();closeAddModal();showToast(name+' added');}
@@ -686,12 +725,15 @@ function closeLogin(){document.getElementById('loginOverlay').classList.remove('
 // ── Player Login ───────────────────────────────
 function handlePlayerLogin(){
   if(playerSession){logoutPlayer();return;}
-  // reset form
   document.getElementById('playerNameInput').value='';
+  document.getElementById('playerPINInput').value='';
   document.getElementById('playerPWInput').value='';
   document.getElementById('playerPWConfirm').value='';
-  document.getElementById('playerPWConfirmGroup').style.display='none';
-  document.getElementById('playerLoginSub').textContent='Enter your name and password to edit your profile';
+  document.getElementById('playerReturnPWInput').value='';
+  document.getElementById('playerPINGroup').style.display='none';
+  document.getElementById('playerCreatePWGroup').style.display='none';
+  document.getElementById('playerReturnPWGroup').style.display='none';
+  document.getElementById('playerLoginSub').textContent='Enter your name to get started';
   document.getElementById('playerLoginErr').textContent='';
   document.getElementById('playerLoginOverlay').classList.add('open');
   setTimeout(()=>document.getElementById('playerNameInput').focus(),100);
@@ -699,38 +741,68 @@ function handlePlayerLogin(){
 
 async function checkPlayerPW(){
   const nameRaw = document.getElementById('playerNameInput').value.trim();
-  const pw = document.getElementById('playerPWInput').value;
-  const pwConfirm = document.getElementById('playerPWConfirm').value;
   const errEl = document.getElementById('playerLoginErr');
   errEl.textContent='';
   if(!nameRaw){errEl.textContent='Please enter your name.';return;}
-  // find player by name (case-insensitive)
   const p = allPlayers.find(x=>x.name.toLowerCase()===nameRaw.toLowerCase());
   if(!p){errEl.textContent='Player not found. Check spelling and try again.';return;}
-  // first time — no password set yet
-  if(!p.player_password){
-    // show confirm field
-    if(document.getElementById('playerPWConfirmGroup').style.display==='none'){
-      document.getElementById('playerPWConfirmGroup').style.display='block';
-      document.getElementById('playerLoginSub').textContent='First time? Create a password for your profile.';
-      errEl.textContent='Create a password below and click Continue again.';
+
+  // ── RETURNING PLAYER (has password) ──────────────────────────────
+  if(p.player_password){
+    // show return password field if not shown
+    if(document.getElementById('playerReturnPWGroup').style.display==='none'){
+      document.getElementById('playerReturnPWGroup').style.display='block';
+      document.getElementById('playerLoginSub').textContent='Welcome back! Enter your password.';
+      document.getElementById('playerReturnPWInput').focus();
       return;
     }
-    if(!pw){errEl.textContent='Please enter a password.';return;}
-    if(pw.length<4){errEl.textContent='Password must be at least 4 characters.';return;}
-    if(pw!==pwConfirm){errEl.textContent='Passwords do not match.';return;}
-    // save password
-    try{
-      await sbPatch('players',p.id,{player_password:pw});
-      const idx=allPlayers.findIndex(x=>x.id===p.id);
-      if(idx!==-1) allPlayers[idx].player_password=pw;
-      loginPlayer(p.id,p.name);
-    }catch(e){errEl.textContent='Error saving password. Try again.';}
-  } else {
-    // existing password
-    if(pw!==p.player_password){errEl.textContent='Incorrect password.';document.getElementById('playerPWInput').value='';return;}
+    const pw = document.getElementById('playerReturnPWInput').value;
+    if(!pw){errEl.textContent='Please enter your password.';return;}
+    if(pw!==p.player_password){errEl.textContent='Incorrect password.';document.getElementById('playerReturnPWInput').value='';return;}
     loginPlayer(p.id,p.name);
+    return;
   }
+
+  // ── FIRST TIME (no password yet) — require PIN ────────────────────
+  if(!p.player_pin){
+    errEl.textContent='No PIN set for this profile yet. Contact Arcane staff to get your PIN.';
+    return;
+  }
+
+  // Step 1: show PIN field
+  if(document.getElementById('playerPINGroup').style.display==='none'){
+    document.getElementById('playerPINGroup').style.display='block';
+    document.getElementById('playerLoginSub').textContent='First time? Enter your PIN from Arcane staff.';
+    document.getElementById('playerPINInput').focus();
+    return;
+  }
+
+  // Step 2: verify PIN
+  const pin = document.getElementById('playerPINInput').value.trim();
+  if(!pin){errEl.textContent='Please enter your PIN.';return;}
+  if(pin!==p.player_pin){errEl.textContent='Incorrect PIN. Contact Arcane staff if you need help.';document.getElementById('playerPINInput').value='';return;}
+
+  // PIN correct — show create password fields
+  if(document.getElementById('playerCreatePWGroup').style.display==='none'){
+    document.getElementById('playerCreatePWGroup').style.display='block';
+    document.getElementById('playerPINGroup').style.display='none';
+    document.getElementById('playerLoginSub').textContent='PIN verified! Now create your password.';
+    document.getElementById('playerPWInput').focus();
+    return;
+  }
+
+  // Step 3: save new password
+  const pw = document.getElementById('playerPWInput').value;
+  const pwConfirm = document.getElementById('playerPWConfirm').value;
+  if(!pw){errEl.textContent='Please create a password.';return;}
+  if(pw.length<4){errEl.textContent='Password must be at least 4 characters.';return;}
+  if(pw!==pwConfirm){errEl.textContent='Passwords do not match.';return;}
+  try{
+    await sbPatch('players',p.id,{player_password:pw});
+    const idx=allPlayers.findIndex(x=>x.id===p.id);
+    if(idx!==-1) allPlayers[idx].player_password=pw;
+    loginPlayer(p.id,p.name);
+  }catch(e){errEl.textContent='Error saving password. Try again.';}
 }
 
 function loginPlayer(id,name){
