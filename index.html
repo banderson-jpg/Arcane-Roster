@@ -1250,8 +1250,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('playerLoginOverlay').classList.contains('open'))checkPlayerPW();
 });
 
-async function ensureBuckets(){for(const b of['player-photos','player-pdfs']){await fetch(`${SUPABASE_URL}/storage/v1/bucket`,{method:'POST',headers:{...SBH,'Content-Type':'application/json'},body:JSON.stringify({id:b,name:b,public:true})}).catch(()=>{});}}
-ensureBuckets();init();
+init();
 </script>
 </body>
 </html>
