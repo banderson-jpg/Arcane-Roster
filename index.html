@@ -227,7 +227,6 @@ canvas.trend{width:100%;height:130px;display:block;}
     <div class="search-box"><input type="text" id="searchInput" placeholder="Player name..." oninput="applyFilters()"></div>
     <div class="sidebar-section">Filter</div>
     <div class="filter-group">
-      <select class="fsel" id="gradeFilter" onchange="applyFilters()"><option value="">All Grades</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select>
       <select class="fsel" id="yearFilter" onchange="applyFilters()"><option value="">All Classes</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2033</option><option>2034</option></select>
       <select class="fsel" id="typeFilter" onchange="applyFilters()"><option value="">All Types</option><option>Hitter</option><option>Pitcher</option><option>Two-Way</option></select>
       <select class="fsel" id="posFilter" onchange="applyFilters()"><option value="">All Positions</option><option>Catcher</option><option>1B</option><option>2B</option><option>SS</option><option>3B</option><option>OF</option><option>Pitcher</option><option>Utility</option></select>
@@ -236,7 +235,6 @@ canvas.trend{width:100%;height:130px;display:block;}
     <div class="sidebar-stats">
       <div class="ss-row"><span class="ss-lbl">Total Players</span><span class="ss-val" id="sTotal">—</span></div>
       <div class="ss-row"><span class="ss-lbl">Avg Max Velo</span><span class="ss-val" id="sVelo">—</span></div>
-      <div class="ss-row"><span class="ss-lbl">Elite Prospects</span><span class="ss-val" id="sElite">—</span></div>
       <div class="ss-row"><span class="ss-lbl">Two-Way</span><span class="ss-val" id="sTwoWay">—</span></div>
       <div class="ss-row"><span class="ss-lbl">Sessions Logged</span><span class="ss-val" id="sSessions">—</span></div>
     </div>
@@ -270,7 +268,6 @@ canvas.trend{width:100%;height:130px;display:block;}
         <div class="fg"><label>Bats</label><select id="aBats"><option value="">—</option><option>Right</option><option>Left</option><option>Switch</option></select></div>
         <div class="fg"><label>Throws</label><select id="aThrows"><option value="">—</option><option>Right</option><option>Left</option></select></div>
         <div class="fg"><label>Type</label><select id="aType"><option>Hitter</option><option>Pitcher</option><option>Two-Way</option></select></div>
-        <div class="fg"><label>Grade</label><select id="aGrade"><option value="">—</option><option>A+</option><option>A</option><option>A-</option><option>B+</option><option>B</option><option>B-</option><option>C+</option><option>C</option></select></div>
       </div>
       <div class="fsec">Metrics</div>
       <div class="ef-grid">
@@ -426,7 +423,7 @@ function renderGrid(list){
     const tags=(p.tags||[]).slice(0,3).map(t=>`<span class="tag ${tCls(t)}">${t}</span>`).join('');
     c.innerHTML=`
       ${p.photo_url?`<img class="pcard-photo" src="${p.photo_url}" alt="${p.name}" onerror="this.style.display='none'">`:`<div class="pcard-nophoto">⚾</div>`}
-      <div class="pcard-head"><div><div class="pcard-name">${p.name}</div><div class="pcard-pos">${p.position||'N/A'} · Class of ${p.grad_year||'N/A'}</div></div><div class="gbadge ${gCls(p.grade)}">${p.grade||'—'}</div></div>
+      <div class="pcard-head"><div><div class="pcard-name">${p.name}</div><div class="pcard-pos">${p.position||'N/A'} · Class of ${p.grad_year||'N/A'}</div></div></div>
       <div class="pcard-meta">
         <div class="pm"><span class="pm-l">Age</span><span class="pm-r">${age||'N/A'}</span></div>
         <div class="pm"><span class="pm-l">Type</span><span class="pm-r">${p.type||'N/A'}</span></div>
@@ -445,15 +442,14 @@ function updateSidebar(list){
   document.getElementById('sTotal').textContent=list.length||'—';
   const vp=list.filter(p=>p.max_velo);
   document.getElementById('sVelo').textContent=vp.length?(vp.reduce((s,p)=>s+p.max_velo,0)/vp.length).toFixed(1):'—';
-  document.getElementById('sElite').textContent=list.filter(p=>['A+','A','A-'].includes(p.grade)).length;
   document.getElementById('sTwoWay').textContent=list.filter(p=>p.type==='Two-Way').length;
   document.getElementById('sSessions').textContent=allSessions.filter(s=>list.some(p=>p.id===s.player_id)).length;
   document.getElementById('playerCount').textContent=list.length+' players';
 }
 
 function applyFilters(){
-  const s=document.getElementById('searchInput').value.toLowerCase(),gf=document.getElementById('gradeFilter').value,yf=document.getElementById('yearFilter').value,tf=document.getElementById('typeFilter').value,pf=document.getElementById('posFilter').value;
-  renderGrid(allPlayers.filter(p=>p.name.toLowerCase().includes(s)&&(!gf||p.grade===gf)&&(!yf||String(p.grad_year)===yf)&&(!tf||p.type===tf)&&(!pf||(p.position||'').toLowerCase().includes(pf.toLowerCase()))));
+  const s=document.getElementById('searchInput').value.toLowerCase(),yf=document.getElementById('yearFilter').value,tf=document.getElementById('typeFilter').value,pf=document.getElementById('posFilter').value;
+  renderGrid(allPlayers.filter(p=>p.name.toLowerCase().includes(s)&&(!yf||String(p.grad_year)===yf)&&(!tf||p.type===tf)&&(!pf||(p.position||'').toLowerCase().includes(pf.toLowerCase()))));
 }
 
 function renderProfile(p){
@@ -475,7 +471,7 @@ function renderProfile(p){
             <div class="pb-item"><span class="pb-lbl">School</span><span class="pb-val">${p.school||'N/A'}</span></div>
             <div class="pb-item"><span class="pb-lbl">Sessions</span><span class="pb-val">${sessions.length}</span></div>
           </div>
-          <div class="prof-grade-row"><span class="gbadge ${gCls(p.grade)}" style="font-size:1rem;padding:0.35rem 0.85rem">${p.grade||'—'}</span>${(p.tags||[]).slice(0,4).map(t=>`<span class="tag ${tCls(t)}">${t}</span>`).join('')}</div>
+          <div class="prof-grade-row">${(p.tags||[]).slice(0,4).map(t=>`<span class="tag ${tCls(t)}">${t}</span>`).join('')}</div>
           <div class="prof-social">
             ${p.instagram?`<a class="social-btn social-ig" href="https://instagram.com/${p.instagram.replace('@','')}" target="_blank">📸 ${p.instagram}</a>`:''}
             ${p.twitter?`<a class="social-btn social-tw" href="https://twitter.com/${p.twitter.replace('@','')}" target="_blank">𝕏 ${p.twitter}</a>`:''}
@@ -514,15 +510,56 @@ function renderProfile(p){
     <div class="prof-tab-body">`;
 
   if(currentTab==='overview'){
-    if(sessions.length>=2) html+=`<div class="chart-wrap"><div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.5rem">Exit Velocity Trend</div><canvas class="trend" id="trendChart" width="800" height="130"></canvas></div>`;
+    const charts = [
+      {id:'chart_maxvelo', key:'max_exit_velo', label:'Max Exit Velocity', unit:'mph', color:'#1a3a6e'},
+      {id:'chart_batspeed', key:'bat_speed', label:'Bat Speed', unit:'mph', color:'#c9a227'},
+      {id:'chart_pitchvelo', key:'pitch_velo', label:'Pitch Velocity', unit:'mph', color:'#1a7a3c'},
+      {id:'chart_distance', key:'max_distance', label:'Max Distance', unit:'ft', color:'#8b3a8b'},
+      {id:'chart_sixty', key:null, label:'60 Yard Dash', unit:'sec', color:'#c0392b', lower_is_better:true},
+    ];
+    // build charts section
+    let hasAnyChart = false;
+    let chartHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">';
+    charts.forEach(ch => {
+      let data;
+      if(ch.key === null) {
+        // 60 dash comes from player field, not sessions (sessions don't track it yet — skip if no session data)
+        data = sessions.filter(s=>s.sixty_dash).map(s=>({date:s.session_date,val:s.sixty_dash}));
+      } else {
+        data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));
+      }
+      if(data.length >= 2){
+        hasAnyChart = true;
+        const best = ch.lower_is_better ? Math.min(...data.map(d=>d.val)) : Math.max(...data.map(d=>d.val));
+        const latest = data[data.length-1].val;
+        const change = latest - data[0].val;
+        const changeStr = (change >= 0 ? '+' : '') + change.toFixed(1);
+        const changeColor = ch.lower_is_better ? (change < 0 ? '#1a7a3c' : '#c0392b') : (change > 0 ? '#1a7a3c' : '#c0392b');
+        chartHtml += `<div class="chart-wrap" style="margin-bottom:0">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.5rem">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px">${ch.label}</div>
+              <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;color:var(--blue);line-height:1">${latest} <span style="font-size:0.7rem;color:var(--muted);font-family:'Barlow',sans-serif">${ch.unit}</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:0.7rem;color:var(--muted);font-family:'Barlow Condensed',sans-serif">Best: ${best}${ch.unit}</div>
+              <div style="font-size:0.8rem;font-weight:700;color:${changeColor};font-family:'Barlow Condensed',sans-serif">${changeStr} ${ch.unit}</div>
+            </div>
+          </div>
+          <canvas id="${ch.id}" width="400" height="100" style="width:100%;height:100px;display:block"></canvas>
+        </div>`;
+      }
+    });
+    chartHtml += '</div>';
+    if(hasAnyChart) html += chartHtml;
     if(p.notes) html+=`<div style="margin-bottom:1rem"><div style="font-family:'Barlow Condensed',sans-serif;font-size:0.82rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-bottom:0.5rem">Scouting Notes</div><div class="notes-box">${p.notes}</div></div>`;
     if(!sessions.length&&!p.notes) html+=`<div class="empty"><div style="font-size:0.9rem">No notes or session data yet.</div></div>`;
   } else if(currentTab==='sessions'){
-    if(isAdmin) html+=`<div class="add-session-form"><div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-bottom:0.75rem">Log New Session</div><div class="sf-grid"><div class="fg"><label>Date *</label><input type="date" id="ssDate" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label>Type</label><select id="ssType"><option>HitTrax</option><option>TrackMan</option><option>Both</option></select></div><div class="fg"><label>Max Exit Velo</label><input type="number" step="0.1" id="ssMV"></div><div class="fg"><label>Avg Exit Velo</label><input type="number" step="0.1" id="ssAV"></div><div class="fg"><label>Bat Speed</label><input type="number" step="0.1" id="ssBS"></div><div class="fg"><label>Pitch Velo</label><input type="number" step="0.1" id="ssPV"></div><div class="fg"><label>Spin Rate</label><input type="number" id="ssSR"></div><div class="fg"><label>Max Distance (ft)</label><input type="number" step="0.1" id="ssDist"></div></div><div class="fg" style="margin-bottom:0.75rem"><label>Notes</label><input type="text" id="ssNotes"></div><button class="btn btn-gold btn-sm" onclick="addSession()">Log Session</button></div>`;
+    if(isAdmin) html+=`<div class="add-session-form"><div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-bottom:0.75rem">Log New Session</div><div class="sf-grid"><div class="fg"><label>Date *</label><input type="date" id="ssDate" value="${new Date().toISOString().split('T')[0]}"></div><div class="fg"><label>Type</label><select id="ssType"><option>HitTrax</option><option>TrackMan</option><option>Both</option></select></div><div class="fg"><label>Max Exit Velo</label><input type="number" step="0.1" id="ssMV"></div><div class="fg"><label>Avg Exit Velo</label><input type="number" step="0.1" id="ssAV"></div><div class="fg"><label>Bat Speed</label><input type="number" step="0.1" id="ssBS"></div><div class="fg"><label>Pitch Velo</label><input type="number" step="0.1" id="ssPV"></div><div class="fg"><label>Spin Rate</label><input type="number" id="ssSR"></div><div class="fg"><label>Max Distance (ft)</label><input type="number" step="0.1" id="ssDist"></div><div class="fg"><label>60 Yard Dash (sec)</label><input type="number" step="0.01" id="ss60"></div></div><div class="fg" style="margin-bottom:0.75rem"><label>Notes</label><input type="text" id="ssNotes"></div><button class="btn btn-gold btn-sm" onclick="addSession()">Log Session</button></div>`;
     if(!sessions.length) html+=`<div class="empty"><div style="font-size:2rem;margin-bottom:0.5rem">📊</div><div style="font-size:0.9rem">No sessions logged yet</div></div>`;
     else{
-      html+=`<div style="overflow-x:auto"><table class="session-table"><thead><tr><th>Date</th><th>Type</th><th>Max Velo</th><th>Avg Velo</th><th>Bat Spd</th><th>Pitch</th><th>Spin</th><th>Dist</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>`;
-      [...sessions].reverse().forEach(s=>{html+=`<tr><td>${fmtDate(s.session_date)}</td><td>${s.session_type||'—'}</td><td style="color:var(--blue);font-weight:700">${s.max_exit_velo||'—'}</td><td>${s.avg_exit_velo||'—'}</td><td>${s.bat_speed||'—'}</td><td>${s.pitch_velo||'—'}</td><td>${s.spin_rate||'—'}</td><td>${s.max_distance||'—'}</td>${isAdmin?`<td><button class="session-del" onclick="deleteSession(${s.id})">✕</button></td>`:''}</tr>`;});
+      html+=`<div style="overflow-x:auto"><table class="session-table"><thead><tr><th>Date</th><th>Type</th><th>Max Velo</th><th>Avg Velo</th><th>Bat Spd</th><th>Pitch</th><th>Spin</th><th>Dist</th><th>60 Yd</th>${isAdmin?'<th></th>':''}</tr></thead><tbody>`;
+      [...sessions].reverse().forEach(s=>{html+=`<tr><td>${fmtDate(s.session_date)}</td><td>${s.session_type||'—'}</td><td style="color:var(--blue);font-weight:700">${s.max_exit_velo||'—'}</td><td>${s.avg_exit_velo||'—'}</td><td>${s.bat_speed||'—'}</td><td>${s.pitch_velo||'—'}</td><td>${s.spin_rate||'—'}</td><td>${s.max_distance||'—'}</td><td>${s.sixty_dash||'—'}</td>${isAdmin?`<td><button class="session-del" onclick="deleteSession(${s.id})">✕</button></td>`:''}</tr>`;});
       html+=`</tbody></table></div>`;
     }
   } else if(currentTab==='videos'){
@@ -539,7 +576,7 @@ function renderProfile(p){
   html+=`<div id="editFormSection" style="display:none"><div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Edit Player</div></div><div class="prof-sec-body">${buildEditForm(p)}</div></div></div>`;
 
   document.getElementById('profileContent').innerHTML=html;
-  if(currentTab==='overview'&&sessions.length>=2) setTimeout(()=>drawTrend(sessions),80);
+  if(currentTab==='overview') setTimeout(()=>drawAllCharts(sessions),80);
 }
 
 function switchTab(tab){currentTab=tab;const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}
@@ -559,7 +596,6 @@ function buildEditForm(p){
     <div class="fg"><label>Bats</label><select id="eBats"><option value="">—</option>${['Right','Left','Switch'].map(v=>`<option ${p.bats===v?'selected':''}>${v}</option>`).join('')}</select></div>
     <div class="fg"><label>Throws</label><select id="eThrows"><option value="">—</option>${['Right','Left'].map(v=>`<option ${p.throws===v?'selected':''}>${v}</option>`).join('')}</select></div>
     ${!playerEditing?`<div class="fg"><label>Type</label><select id="eType">${['Hitter','Pitcher','Two-Way'].map(v=>`<option ${p.type===v?'selected':''}>${v}</option>`).join('')}</select></div>`:`<input type="hidden" id="eType" value="${sv(p.type)}">`}
-    ${!playerEditing?`<div class="fg"><label>Grade</label><select id="eGrade"><option value="">—</option>${['A+','A','A-','B+','B','B-','C+','C'].map(v=>`<option ${p.grade===v?'selected':''}>${v}</option>`).join('')}</select></div>`:`<input type="hidden" id="eGrade" value="${sv(p.grade)}">`}
   </div>
   <div class="fsec">Metrics</div><div class="ef-grid">
     <div class="fg"><label>Max Exit Velo</label><input type="number" step="0.1" id="eMV" value="${sv(p.max_velo)}"></div>
@@ -616,7 +652,7 @@ function buildEditForm(p){
 async function saveEdit(){
   const name=gv('eN').trim(); if(!name){showToast('Name required',true);return;}
   const btn=document.getElementById('saveBtn'); btn.disabled=true;btn.textContent='Saving...';
-  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',grade:gv('eGrade')||null,max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null};
+  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null};
   // handle player password change
   const newPW = gv('eNewPW');
   const newPWConfirm = gv('eNewPWConfirm');
@@ -652,7 +688,7 @@ async function resetPlayerPassword(){
 
 async function addSession(){
   const date=gv('ssDate'); if(!date){showToast('Date required',true);return;}
-  const payload={player_id:currentId,session_date:date,session_type:gv('ssType')||null,max_exit_velo:parseFloat(gv('ssMV'))||null,avg_exit_velo:parseFloat(gv('ssAV'))||null,bat_speed:parseFloat(gv('ssBS'))||null,pitch_velo:parseFloat(gv('ssPV'))||null,spin_rate:parseFloat(gv('ssSR'))||null,max_distance:parseFloat(gv('ssDist'))||null,notes:gv('ssNotes')||null};
+  const payload={player_id:currentId,session_date:date,session_type:gv('ssType')||null,max_exit_velo:parseFloat(gv('ssMV'))||null,avg_exit_velo:parseFloat(gv('ssAV'))||null,bat_speed:parseFloat(gv('ssBS'))||null,pitch_velo:parseFloat(gv('ssPV'))||null,spin_rate:parseFloat(gv('ssSR'))||null,max_distance:parseFloat(gv('ssDist'))||null,sixty_dash:parseFloat(gv('ss60'))||null,notes:gv('ssNotes')||null};
   try{
     const res=await sbPost('player_sessions',payload); allSessions.push(res[0]);
     const p=allPlayers.find(x=>x.id===currentId),upd={};
@@ -691,7 +727,7 @@ async function submitAdd(){
   const tags=gv('aTags').split(',').map(t=>t.trim()).filter(Boolean),mv=parseFloat(gv('aMV'))||null;
   if(mv>=100&&!tags.includes('100 MPH Club'))tags.push('100 MPH Club');
   if(mv>=95&&!tags.includes('Elite Power'))tags.push('Elite Power');
-  const payload={name,dob:gv('aDOB')||null,height:gv('aH')||null,weight:parseInt(gv('aW'))||null,school:gv('aSch')||null,grad_year:parseInt(gv('aGY'))||null,position:gv('aPos')||null,bats:gv('aBats')||null,throws:gv('aThrows')||null,type:gv('aType')||'Hitter',grade:gv('aGrade')||null,max_velo:mv,avg_velo:parseFloat(gv('aAV'))||null,bat_speed:parseFloat(gv('aBS'))||null,pitch_velo:parseFloat(gv('aPV'))||null,spin_rate:parseFloat(gv('aSR'))||null,hha:parseFloat(gv('aHHA'))||null,sixty_dash:parseFloat(gv('a60'))||null,pop_time:parseFloat(gv('aPT'))||null,vertical_jump:parseFloat(gv('aVJ'))||null,outfield_velo:parseFloat(gv('aOV'))||null,instagram:gv('aIG')||null,twitter:gv('aTW')||null,player_pin:gv('aPIN')||null,notes:gv('aNotes')||null,tags};
+  const payload={name,dob:gv('aDOB')||null,height:gv('aH')||null,weight:parseInt(gv('aW'))||null,school:gv('aSch')||null,grad_year:parseInt(gv('aGY'))||null,position:gv('aPos')||null,bats:gv('aBats')||null,throws:gv('aThrows')||null,type:gv('aType')||'Hitter',max_velo:mv,avg_velo:parseFloat(gv('aAV'))||null,bat_speed:parseFloat(gv('aBS'))||null,pitch_velo:parseFloat(gv('aPV'))||null,spin_rate:parseFloat(gv('aSR'))||null,hha:parseFloat(gv('aHHA'))||null,sixty_dash:parseFloat(gv('a60'))||null,pop_time:parseFloat(gv('aPT'))||null,vertical_jump:parseFloat(gv('aVJ'))||null,outfield_velo:parseFloat(gv('aOV'))||null,instagram:gv('aIG')||null,twitter:gv('aTW')||null,player_pin:gv('aPIN')||null,notes:gv('aNotes')||null,tags};
   const pu=await uploadFile('aPhoto','player-photos','image'); if(pu)payload.photo_url=pu;
   const du=await uploadFile('aPDF','player-pdfs','pdf'); if(du)payload.schedule_url=du;
   try{const res=await sbPost('players',payload);allPlayers.push(res[0]);allPlayers.sort((a,b)=>a.name.localeCompare(b.name));applyFilters();closeAddModal();showToast(name+' added');}
@@ -831,27 +867,59 @@ function canEdit(playerId){
   if(playerSession && playerSession.id===playerId) return true;
   return false;
 }
-function drawTrend(sessions){
-  const canvas=document.getElementById('trendChart'); if(!canvas)return;
-  const ctx=canvas.getContext('2d'),W=canvas.offsetWidth||800,H=130;
-  canvas.width=W;canvas.height=H;
-  const data=sessions.filter(s=>s.max_exit_velo).map(s=>({date:s.session_date,val:s.max_exit_velo}));
-  if(data.length<2)return;
-  const min=Math.min(...data.map(d=>d.val))-3,max=Math.max(...data.map(d=>d.val))+3;
-  const pad={t:14,b:28,l:36,r:10},W2=W-pad.l-pad.r,H2=H-pad.t-pad.b;
-  const x=i=>pad.l+(i/(data.length-1))*W2,y=v=>pad.t+(1-(v-min)/(max-min))*H2;
+function drawAllCharts(sessions){
+  const charts = [
+    {id:'chart_maxvelo', key:'max_exit_velo', color:'#1a3a6e'},
+    {id:'chart_batspeed', key:'bat_speed', color:'#c9a227'},
+    {id:'chart_pitchvelo', key:'pitch_velo', color:'#1a7a3c'},
+    {id:'chart_distance', key:'max_distance', color:'#8b3a8b'},
+    {id:'chart_sixty', key:'sixty_dash', color:'#c0392b', lower_is_better:true},
+  ];
+  charts.forEach(ch => {
+    const data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));
+    if(data.length >= 2) drawChart(ch.id, data, ch.color, ch.lower_is_better);
+  });
+}
+
+function drawChart(canvasId, data, color, lowerIsBetter){
+  const canvas = document.getElementById(canvasId); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth||400, H = 100;
+  canvas.width = W; canvas.height = H;
+  const min = Math.min(...data.map(d=>d.val)) - (lowerIsBetter?0.3:2);
+  const max = Math.max(...data.map(d=>d.val)) + (lowerIsBetter?0.3:2);
+  const pad = {t:8,b:22,l:28,r:8};
+  const W2 = W-pad.l-pad.r, H2 = H-pad.t-pad.b;
+  const x = i => pad.l+(i/(data.length-1))*W2;
+  // for lower_is_better, invert the y axis so improvement goes up
+  const y = v => lowerIsBetter
+    ? pad.t+(((v-min)/(max-min)))*H2
+    : pad.t+(1-((v-min)/(max-min)))*H2;
   ctx.clearRect(0,0,W,H);
-  ctx.strokeStyle='#e2e5ea';ctx.lineWidth=1;
-  for(let i=0;i<4;i++){const yy=pad.t+(i/3)*H2;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();}
+  // grid lines
+  ctx.strokeStyle='#e2e5ea'; ctx.lineWidth=1;
+  for(let i=0;i<3;i++){const yy=pad.t+(i/2)*H2;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();}
+  // fill gradient
   const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
-  grad.addColorStop(0,'rgba(26,58,110,0.12)');grad.addColorStop(1,'rgba(26,58,110,0.01)');
-  ctx.beginPath();ctx.moveTo(x(0),y(data[0].val));data.forEach((d,i)=>{if(i>0)ctx.lineTo(x(i),y(d.val));});
-  ctx.lineTo(x(data.length-1),H-pad.b);ctx.lineTo(x(0),H-pad.b);ctx.closePath();ctx.fillStyle=grad;ctx.fill();
-  ctx.beginPath();ctx.strokeStyle='#1a3a6e';ctx.lineWidth=2;data.forEach((d,i)=>{i===0?ctx.moveTo(x(i),y(d.val)):ctx.lineTo(x(i),y(d.val));});ctx.stroke();
+  grad.addColorStop(0,color+'22'); grad.addColorStop(1,color+'04');
+  ctx.beginPath();
+  ctx.moveTo(x(0),y(data[0].val));
+  data.forEach((d,i)=>{if(i>0)ctx.lineTo(x(i),y(d.val));});
+  ctx.lineTo(x(data.length-1),H-pad.b);
+  ctx.lineTo(x(0),H-pad.b);
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  // line
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2;
+  data.forEach((d,i)=>{i===0?ctx.moveTo(x(i),y(d.val)):ctx.lineTo(x(i),y(d.val));});
+  ctx.stroke();
+  // dots + value labels
   data.forEach((d,i)=>{
-    ctx.beginPath();ctx.arc(x(i),y(d.val),4,0,Math.PI*2);ctx.fillStyle='#1a3a6e';ctx.fill();
-    ctx.fillStyle='#c9a227';ctx.font='bold 10px Barlow Condensed,sans-serif';ctx.textAlign='center';ctx.fillText(d.val,x(i),y(d.val)-8);
-    ctx.fillStyle='#9ca3af';ctx.font='10px Barlow,sans-serif';ctx.fillText(fmtDate(d.date).split('/').slice(0,2).join('/'),x(i),H-pad.b+14);
+    ctx.beginPath(); ctx.arc(x(i),y(d.val),3.5,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.fillStyle=color; ctx.font='bold 9px Barlow Condensed,sans-serif';
+    ctx.textAlign='center'; ctx.fillText(d.val,x(i),y(d.val)-6);
+    ctx.fillStyle='#9ca3af'; ctx.font='9px Barlow,sans-serif';
+    ctx.fillText(fmtDate(d.date).split('/').slice(0,2).join('/'),x(i),H-pad.b+13);
   });
 }
 
