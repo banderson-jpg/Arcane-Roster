@@ -162,9 +162,20 @@ canvas.metric-trend{width:100%;display:block;}
 .sf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.65rem;margin-bottom:0.75rem;}
 .chart-wrap{background:#f8f9fb;border:1px solid var(--border);padding:1rem;margin-bottom:1.1rem;}
 canvas.trend{width:100%;height:130px;display:block;}
-.videos-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem;}
-.video-wrap{position:relative;padding-bottom:56.25%;height:0;background:#e8ecf2;border:1px solid var(--border);}
-.video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
+/* ── VIDEO SECTION ── */
+.prof-videos{background:#fff;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:1.25rem;overflow:hidden;}
+.featured-video-wrap{position:relative;padding-bottom:56.25%;height:0;background:#0a0f1e;}
+.featured-video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
+.featured-video-empty{padding:3rem;text-align:center;color:var(--muted);background:#f8f9fb;border-bottom:1px solid var(--border);}
+.shorts-row{display:grid;grid-template-columns:repeat(3,1fr);gap:0;}
+.short-wrap{position:relative;padding-bottom:177.78%;height:0;background:#0a0f1e;border-right:1px solid var(--border);}
+.short-wrap:last-child{border-right:none;}
+.short-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
+.short-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.4rem;color:var(--muted2);font-size:0.75rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;}
+.video-slot-label{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;z-index:2;}
+.video-remove-btn{position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.92);border:1px solid var(--red);color:var(--red);cursor:pointer;padding:2px 8px;font-size:0.75rem;font-weight:700;z-index:2;display:none;}
+.video-remove-btn.show{display:block;}
+@media(max-width:768px){.shorts-row{grid-template-columns:1fr;}  .short-wrap{border-right:none;border-bottom:1px solid var(--border);}}
 .video-add-row{display:flex;gap:0.5rem;margin-bottom:0.85rem;}
 .video-add-row input{flex:1;padding:0.6rem;background:#fff;border:1px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:0.88rem;}
 .video-add-row input:focus{outline:none;border-color:var(--blue);}
@@ -678,7 +689,7 @@ function drawChart(canvasId, data, color, lowerIsBetter){
 // ── PROFILE RENDER ────────────────────────────────────────────────────────────
 function renderProfile(p){
   const sessions=allSessions.filter(s=>s.player_id===p.id).sort((a,b)=>new Date(a.session_date)-new Date(b.session_date));
-  const age=calcAge(p.dob), videos=p.video_urls||[];
+  const age=calcAge(p.dob), videos=p.video_urls||[], videoCount=(p.video_urls||[]).filter(Boolean).length;
   let html=`
     <div class="prof-hero">
       <div class="prof-hero-banner"></div>
@@ -708,6 +719,55 @@ function renderProfile(p){
         </div>
       </div>
     </div>`;
+
+  // ── VIDEOS SECTION (always visible) ──
+  const featured = (p.video_urls||[])[0]||null;
+  const shorts = [(p.video_urls||[])[1]||null, (p.video_urls||[])[2]||null, (p.video_urls||[])[3]||null];
+  const hasAnyVideo = featured || shorts.some(v=>v);
+  if(hasAnyVideo || isAdmin){
+    html+=`<div class="prof-videos">
+      <div class="prof-sec-head" style="background:#f8f9fb;border-bottom:1px solid var(--border);padding:0.85rem 1.25rem;">
+        <div class="prof-sec-title">Highlight Videos</div>
+      </div>`;
+    // Featured
+    const featEmbed = featured ? getEmbedUrl(featured) : null;
+    if(featEmbed){
+      html+=`<div style="position:relative">
+        <div class="featured-video-wrap"><iframe src="${featEmbed}" allowfullscreen></iframe></div>
+        <div class="video-slot-label">Featured</div>
+        ${isAdmin?`<button class="video-remove-btn show" onclick="removeVideoSlot(0)">✕ Remove</button>`:''}
+      </div>`;
+    } else if(isAdmin){
+      html+=`<div class="featured-video-empty">
+        <div style="font-size:1.5rem;margin-bottom:0.4rem">🎬</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:0.5rem">No featured video yet</div>
+        <div style="font-size:0.8rem;color:var(--muted2)">Add one in the Videos tab below</div>
+      </div>`;
+    }
+    // Shorts row — only show if at least one short exists or admin
+    const hasShorts = shorts.some(v=>v);
+    if(hasShorts || isAdmin){
+      html+=`<div class="shorts-row">`;
+      shorts.forEach((url,i)=>{
+        const embed = url ? getEmbedUrl(url) : null;
+        if(embed){
+          html+=`<div style="position:relative">
+            <div class="short-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>
+            <div class="video-slot-label">Clip ${i+1}</div>
+            ${isAdmin?`<button class="video-remove-btn show" onclick="removeVideoSlot(${i+1})">✕</button>`:''}
+          </div>`;
+        } else {
+          html+=`<div style="position:relative">
+            <div class="short-wrap"><div class="short-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              ${isAdmin?`<div style="font-size:1.2rem">＋</div><div>Clip ${i+1}</div><div style="font-size:0.65rem;color:var(--muted2)">Add in Videos tab</div>`:`<div style="font-size:1rem;color:#444">🎬</div>`}
+            </div></div>
+          </div>`;
+        }
+      });
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+  }
 
   // ── HITTING METRICS + CHARTS ──
   if(p.max_velo||p.avg_velo||p.bat_speed||p.hha){
@@ -751,7 +811,7 @@ function renderProfile(p){
     <div class="prof-tabs">
       <div class="prof-tab ${currentTab==='overview'?'active':''}" onclick="switchTab('overview')">Overview</div>
       <div class="prof-tab ${currentTab==='sessions'?'active':''}" onclick="switchTab('sessions')">Sessions (${sessions.length})</div>
-      <div class="prof-tab ${currentTab==='videos'?'active':''}" onclick="switchTab('videos')">Videos (${videos.length})</div>
+      <div class="prof-tab ${currentTab==='videos'?'active':''}" onclick="switchTab('videos')">Videos (${videoCount})</div>
     </div>
     <div class="prof-tab-body">`;
 
@@ -804,12 +864,36 @@ function renderProfile(p){
       html+=`</tbody></table></div>`;
     }
   } else if(currentTab==='videos'){
-    if(canEdit(p.id)) html+=`<div class="video-add-row"><input type="text" id="videoUrlInput" placeholder="Paste YouTube or Vimeo URL..." autocomplete="off"><button class="btn btn-gold btn-sm" onclick="addVideo()">Add Video</button></div>`;
-    if(!videos.length) html+=`<div class="empty"><div style="font-size:2rem;margin-bottom:0.5rem">🎬</div><div style="font-size:0.9rem">No highlight videos yet</div></div>`;
-    else{
-      html+=`<div class="videos-grid">`;
-      videos.forEach((url,i)=>{const embed=getEmbedUrl(url);if(embed) html+=`<div style="position:relative"><div class="video-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>${canEdit(p.id)?`<button onclick="removeVideo(${i})" style="position:absolute;top:6px;right:6px;background:rgba(255,255,255,0.92);border:1px solid var(--red);color:var(--red);cursor:pointer;padding:2px 8px;font-size:0.75rem;font-weight:700;">✕</button>`:''}</div>`;});
+    const slots = [
+      {index:0, label:'Featured Video', desc:'Full-width landscape — main highlight reel', aspect:'16:9'},
+      {index:1, label:'Clip 1', desc:'Vertical short (9:16)', aspect:'9:16'},
+      {index:2, label:'Clip 2', desc:'Vertical short (9:16)', aspect:'9:16'},
+      {index:3, label:'Clip 3', desc:'Vertical short (9:16)', aspect:'9:16'},
+    ];
+    const currentVids = p.video_urls||[];
+    if(isAdmin){
+      html+=`<div style="display:grid;gap:0.85rem;">`;
+      slots.forEach(slot=>{
+        const existing = currentVids[slot.index]||null;
+        html+=`<div style="background:#f8f9fb;border:1px solid var(--border);padding:1rem;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem">
+            <div>
+              <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px">${slot.label}</div>
+              <div style="font-size:0.75rem;color:var(--muted)">${slot.desc}</div>
+            </div>
+            ${existing?`<span style="font-size:0.7rem;background:#1a7a3c;color:#fff;padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;">✓ Set</span>`:`<span style="font-size:0.7rem;background:var(--border2);color:var(--muted);padding:2px 8px;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:1px;text-transform:uppercase;">Empty</span>`}
+          </div>
+          ${existing?`<div style="font-size:0.78rem;color:var(--muted);word-break:break-all;margin-bottom:0.5rem;font-family:'Barlow',sans-serif;">${existing}</div>`:''}
+          <div style="display:flex;gap:0.5rem;">
+            <input type="text" id="videoSlot${slot.index}" placeholder="Paste YouTube URL..." autocomplete="off" value="${existing||''}" style="flex:1;padding:0.55rem;background:#fff;border:1px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:0.85rem;">
+            <button class="btn btn-gold btn-sm" onclick="saveVideoSlot(${slot.index})">Save</button>
+            ${existing?`<button class="btn btn-danger btn-sm" onclick="removeVideoSlot(${slot.index})">Remove</button>`:''}
+          </div>
+        </div>`;
+      });
       html+=`</div>`;
+    } else {
+      html+=`<div class="empty"><div style="font-size:0.9rem">Videos are managed by Arcane staff.</div></div>`;
     }
   }
   html+=`</div></div>`;
@@ -949,19 +1033,37 @@ async function deleteSession(sid){
   catch(e){showToast('Error: '+e.message,true);}
 }
 
-async function addVideo(){
-  const url=gv('videoUrlInput').trim(); if(!url||!getEmbedUrl(url)){showToast('Invalid YouTube or Vimeo URL',true);return;}
+async function saveVideoSlot(index){
+  const url=gv('videoSlot'+index).trim();
+  if(!url){showToast('Paste a YouTube URL first',true);return;}
+  if(!getEmbedUrl(url)){showToast('Invalid YouTube or Vimeo URL',true);return;}
   const p=allPlayers.find(x=>x.id===currentId);
-  if((p.video_urls||[]).length>=5){showToast('Max 5 videos per player',true);return;}
-  const videos=[...(p.video_urls||[]),url];
-  try{await sbPatch('players',currentId,{video_urls:videos});const idx=allPlayers.findIndex(x=>x.id===currentId);if(idx!==-1)allPlayers[idx]={...allPlayers[idx],video_urls:videos};renderProfile(allPlayers[idx]);showToast('Video added');}
-  catch(e){showToast('Error: '+e.message,true);}
+  const videos=[...(p.video_urls||[])];
+  while(videos.length<=index) videos.push(null);
+  videos[index]=url;
+  try{
+    await sbPatch('players',currentId,{video_urls:videos});
+    const idx=allPlayers.findIndex(x=>x.id===currentId);
+    if(idx!==-1) allPlayers[idx]={...allPlayers[idx],video_urls:videos};
+    renderProfile(allPlayers.find(x=>x.id===currentId));
+    showToast('Video saved');
+  }catch(e){showToast('Error: '+e.message,true);}
 }
 
-async function removeVideo(i){
-  const p=allPlayers.find(x=>x.id===currentId),videos=(p.video_urls||[]).filter((_,idx)=>idx!==i);
-  try{await sbPatch('players',currentId,{video_urls:videos});const idx=allPlayers.findIndex(x=>x.id===currentId);if(idx!==-1)allPlayers[idx]={...allPlayers[idx],video_urls:videos};renderProfile(allPlayers[idx]);showToast('Video removed');}
-  catch(e){showToast('Error: '+e.message,true);}
+async function removeVideoSlot(index){
+  const p=allPlayers.find(x=>x.id===currentId);
+  const videos=[...(p.video_urls||[])];
+  while(videos.length<=index) videos.push(null);
+  videos[index]=null;
+  // trim trailing nulls
+  while(videos.length && !videos[videos.length-1]) videos.pop();
+  try{
+    await sbPatch('players',currentId,{video_urls:videos});
+    const idx=allPlayers.findIndex(x=>x.id===currentId);
+    if(idx!==-1) allPlayers[idx]={...allPlayers[idx],video_urls:videos};
+    renderProfile(allPlayers.find(x=>x.id===currentId));
+    showToast('Video removed');
+  }catch(e){showToast('Error: '+e.message,true);}
 }
 
 function openAddModal(){document.getElementById('addModal').classList.add('open');}
