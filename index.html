@@ -1111,7 +1111,12 @@ async function compressImage(file,maxW,quality){
 async function doUpload(file,bucket,ext){
   const fname=`${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
   const r=await fetch(`${SUPABASE_URL}/storage/v1/object/${bucket}/${fname}`,{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':file.type||'application/octet-stream'},body:file});
-  if(!r.ok){console.error('Upload failed',await r.text());return null;}
+  if(!r.ok){
+    const errText=await r.text();
+    console.error('Upload failed',errText);
+    showToast('Photo upload failed: '+errText,true);
+    return null;
+  }
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${fname}`;
 }
 function prevPhoto(inputId,previewId){const file=document.getElementById(inputId)?.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const el=document.getElementById(previewId);if(el){el.src=e.target.result;el.style.display='block';}};reader.readAsDataURL(file);}
