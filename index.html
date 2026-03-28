@@ -1229,7 +1229,15 @@ async function doUpload(file,bucket,ext){
 }
 function prevPhoto(inputId,previewId){const file=document.getElementById(inputId)?.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const el=document.getElementById(previewId);if(el){el.src=e.target.result;el.style.display='block';}};reader.readAsDataURL(file);}
 
-function getEmbedUrl(url){if(!url)return null;const yt=url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([a-zA-Z0-9_-]{11})/);if(yt)return`https://www.youtube.com/embed/${yt[1]}`;const vm=url.match(/vimeo\.com\/(\d+)/);if(vm)return`https://player.vimeo.com/video/${vm[1]}`;return null;}
+function getEmbedUrl(url){
+  if(!url) return null;
+  // YouTube watch, short link, embed, and Shorts
+  const yt = url.match(/(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/)|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(yt) return `https://www.youtube.com/embed/${yt[1]}`;
+  const vm = url.match(/vimeo\.com\/(\d+)/);
+  if(vm) return `https://player.vimeo.com/video/${vm[1]}`;
+  return null;
+}
 function calcAge(dob){if(!dob)return null;const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();if(t.getMonth()-b.getMonth()<0||(t.getMonth()-b.getMonth()===0&&t.getDate()<b.getDate()))a--;return a;}
 function fmtHHA(v){if(!v)return null;return'.'+(String(parseFloat(v).toFixed(3)).split('.')[1]||'000');}
 function fmtDate(d){if(!d)return'—';const p=d.split('-');return`${p[1]}/${p[2]}/${p[0].slice(2)}`;}
