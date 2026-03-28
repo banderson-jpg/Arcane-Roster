@@ -242,7 +242,7 @@ canvas.trend{width:100%;height:130px;display:block;}
 <div id="rosterView">
   <div class="sidebar">
     <div class="sidebar-section">Search</div>
-    <div class="search-box"><input type="text" id="searchInput" placeholder="Player name..." oninput="applyFilters()"></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Player name..." oninput="applyFilters()" autocomplete="off"></div>
     <div class="sidebar-section">Filter</div>
     <div class="filter-group">
       <select class="fsel" id="yearFilter" onchange="applyFilters()"><option value="">All Classes</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2033</option><option>2034</option></select>
@@ -683,7 +683,7 @@ function renderProfile(p){
     <div class="prof-hero">
       <div class="prof-hero-banner"></div>
       <div class="prof-hero-body">
-        <div class="prof-photo-col">${p.photo_url?`<img class="prof-photo" src="${p.photo_url}" alt="${p.name}" onerror="this.outerHTML='<div class=prof-nophoto>⚾</div>'">`:`<div class="prof-nophoto">⚾</div>`}</div>
+        <div class="prof-photo-col" id="profPhotoCol">${p.photo_url?`<img class="prof-photo" src="${p.photo_url}" alt="${p.name}" onerror="document.getElementById('profPhotoCol').innerHTML='<div class=prof-nophoto>⚾</div>'">`:`<div class="prof-nophoto">⚾</div>`}</div>
         <div class="prof-info-col">
           <div class="prof-name">${p.name}</div>
           <div class="prof-pos-line">${p.position||'N/A'} &middot; ${p.type||''} &middot; Class of ${p.grad_year||'N/A'}</div>
@@ -804,7 +804,7 @@ function renderProfile(p){
       html+=`</tbody></table></div>`;
     }
   } else if(currentTab==='videos'){
-    if(canEdit(p.id)&&videos.length<5) html+=`<div class="video-add-row"><input type="text" id="videoUrlInput" placeholder="Paste YouTube or Vimeo URL..."><button class="btn btn-gold btn-sm" onclick="addVideo()">Add Video</button></div>`;
+    if(canEdit(p.id)) html+=`<div class="video-add-row"><input type="text" id="videoUrlInput" placeholder="Paste YouTube or Vimeo URL..." autocomplete="off"><button class="btn btn-gold btn-sm" onclick="addVideo()">Add Video</button></div>`;
     if(!videos.length) html+=`<div class="empty"><div style="font-size:2rem;margin-bottom:0.5rem">🎬</div><div style="font-size:0.9rem">No highlight videos yet</div></div>`;
     else{
       html+=`<div class="videos-grid">`;
@@ -951,7 +951,9 @@ async function deleteSession(sid){
 
 async function addVideo(){
   const url=gv('videoUrlInput').trim(); if(!url||!getEmbedUrl(url)){showToast('Invalid YouTube or Vimeo URL',true);return;}
-  const p=allPlayers.find(x=>x.id===currentId),videos=[...(p.video_urls||[]),url];
+  const p=allPlayers.find(x=>x.id===currentId);
+  if((p.video_urls||[]).length>=5){showToast('Max 5 videos per player',true);return;}
+  const videos=[...(p.video_urls||[]),url];
   try{await sbPatch('players',currentId,{video_urls:videos});const idx=allPlayers.findIndex(x=>x.id===currentId);if(idx!==-1)allPlayers[idx]={...allPlayers[idx],video_urls:videos};renderProfile(allPlayers[idx]);showToast('Video added');}
   catch(e){showToast('Error: '+e.message,true);}
 }
