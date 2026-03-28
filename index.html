@@ -126,9 +126,26 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 .prof-sec-title{font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;}
 .prof-sec-body{padding:1.25rem;}
 .metrics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:0.75rem;}
-.mbox{background:#f8f9fb;border:1px solid var(--border);padding:1rem;text-align:center;}
+.mbox{background:#f8f9fb;border:1px solid var(--border);padding:1rem;text-align:center;position:relative;}
 .mbox-val{font-family:'Bebas Neue',sans-serif;font-size:2rem;color:var(--blue);line-height:1;}
 .mbox-lbl{font-size:0.68rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-top:3px;}
+.mbox-pb{position:absolute;top:6px;right:6px;font-size:0.58rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;letter-spacing:0.5px;background:var(--gold);color:#000;padding:1px 5px;text-transform:uppercase;}
+
+/* ── PROGRESS CHARTS (metric section) ── */
+.metric-chart-section{margin-top:1.25rem;border-top:1px solid var(--border);padding-top:1.1rem;}
+.metric-chart-section-title{font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:2px;margin-bottom:0.85rem;}
+.metric-charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:1rem;}
+.metric-chart-card{background:#f8f9fb;border:1px solid var(--border);padding:1rem;}
+.mcc-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:0.6rem;}
+.mcc-label{font-family:'Barlow Condensed',sans-serif;font-size:0.8rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;}
+.mcc-stats{text-align:right;}
+.mcc-best{font-size:0.68rem;font-family:'Barlow Condensed',sans-serif;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.5px;}
+.mcc-delta{font-size:0.75rem;font-weight:700;font-family:'Barlow Condensed',sans-serif;letter-spacing:0.5px;}
+.mcc-delta.up{color:#1a7a3c;}
+.mcc-delta.down{color:var(--red);}
+.mcc-delta.neutral{color:var(--muted);}
+canvas.metric-trend{width:100%;display:block;}
+
 .prof-tabs{display:flex;border-bottom:2px solid var(--border);background:#f8f9fb;padding:0 1.25rem;}
 .prof-tab{padding:0.75rem 1.1rem;font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all 0.2s;margin-bottom:-2px;}
 .prof-tab:hover{color:var(--blue);}.prof-tab.active{color:var(--blue);border-bottom-color:var(--blue);}
@@ -203,6 +220,7 @@ canvas.trend{width:100%;height:130px;display:block;}
   .prof-info-col{border-left:none;border-top:1px solid var(--border);}
   .videos-grid{grid-template-columns:1fr;}
   .prof-bio-grid{grid-template-columns:1fr 1fr;}
+  .metric-charts-grid{grid-template-columns:1fr;}
 }
 </style>
 </head>
@@ -324,12 +342,10 @@ canvas.trend{width:100%;height:130px;display:block;}
         <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Your Name</label>
         <input type="text" id="playerNameInput" placeholder="First Last" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;">
       </div>
-      <!-- Step 1b: PIN (shown when no password set) -->
       <div class="fg" id="playerPINGroup" style="display:none;margin-bottom:0.65rem">
         <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">4-Digit PIN <span style="color:var(--muted);font-size:0.65rem;text-transform:none;letter-spacing:0">(given to you by Arcane)</span></label>
         <input type="password" id="playerPINInput" placeholder="••••" maxlength="4" inputmode="numeric" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1.2rem;letter-spacing:6px;text-align:center;">
       </div>
-      <!-- Step 2: Create password (shown after PIN verified) -->
       <div id="playerCreatePWGroup" style="display:none">
         <div class="fg" style="margin-bottom:0.65rem">
           <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Create Password</label>
@@ -340,7 +356,6 @@ canvas.trend{width:100%;height:130px;display:block;}
           <input type="password" id="playerPWConfirm" placeholder="Re-enter password" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:2px;">
         </div>
       </div>
-      <!-- Step 2 (returning): Enter existing password -->
       <div class="fg" id="playerReturnPWGroup" style="display:none">
         <label style="color:var(--blue);font-size:0.68rem;text-transform:uppercase;letter-spacing:1px;font-family:'Barlow Condensed',sans-serif;font-weight:700;">Password</label>
         <input type="password" id="playerReturnPWInput" placeholder="••••••••" style="width:100%;padding:0.8rem;background:#f8f9fb;border:1.5px solid var(--border2);color:var(--text);font-family:'Barlow',sans-serif;font-size:1rem;letter-spacing:3px;">
@@ -373,7 +388,7 @@ const ADMIN_PASSWORD = 'arcane2024';
 
 const SBH = {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'};
 let allPlayers=[], allSessions=[], currentId=null, isAdmin=false, currentTab='overview';
-let playerSession=null; // {id, name} when a player is logged in
+let playerSession=null;
 
 async function sbGet(t,q=''){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{headers:SBH});if(!r.ok)throw new Error(await r.text());return r.json();}
 async function sbPost(t,d){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}`,{method:'POST',headers:SBH,body:JSON.stringify(d)});if(!r.ok)throw new Error(await r.text());return r.json();}
@@ -452,6 +467,215 @@ function applyFilters(){
   renderGrid(allPlayers.filter(p=>p.name.toLowerCase().includes(s)&&(!yf||String(p.grad_year)===yf)&&(!tf||p.type===tf)&&(!pf||(p.position||'').toLowerCase().includes(pf.toLowerCase()))));
 }
 
+// ── PROGRESS CHART ENGINE ─────────────────────────────────────────────────────
+// Defines all trackable metrics with their session key, label, color, unit, and direction
+const METRIC_DEFS = [
+  // Hitting
+  {id:'mc_maxvelo',  key:'max_exit_velo', label:'Max Exit Velocity', unit:'mph',  color:'#1a3a6e', group:'hitting'},
+  {id:'mc_avgvelo',  key:'avg_exit_velo', label:'Avg Exit Velocity',  unit:'mph',  color:'#2d5299', group:'hitting'},
+  {id:'mc_batspeed', key:'bat_speed',     label:'Bat Speed',          unit:'mph',  color:'#c9a227', group:'hitting'},
+  {id:'mc_dist',     key:'max_distance',  label:'Max Distance',       unit:'ft',   color:'#8b3a8b', group:'hitting'},
+  // Pitching
+  {id:'mc_pitch',    key:'pitch_velo',    label:'Pitch Velocity',     unit:'mph',  color:'#1a7a3c', group:'pitching'},
+  {id:'mc_spin',     key:'spin_rate',     label:'Spin Rate',          unit:'rpm',  color:'#2e8b57', group:'pitching'},
+  // Athletic
+  {id:'mc_sixty',    key:'sixty_dash',    label:'60 Yard Dash',       unit:'sec',  color:'#c0392b', group:'athletic', lowerIsBetter:true},
+];
+
+function buildMetricCharts(sessions, group) {
+  const relevant = METRIC_DEFS.filter(d => d.group === group);
+  const withData = relevant.filter(d => {
+    const pts = sessions.filter(s => s[d.key] != null);
+    return pts.length >= 2;
+  });
+  if (!withData.length) return '';
+
+  let html = `<div class="metric-chart-section">
+    <div class="metric-chart-section-title">Progress Over Time</div>
+    <div class="metric-charts-grid">`;
+
+  withData.forEach(d => {
+    const pts = sessions
+      .filter(s => s[d.key] != null)
+      .sort((a,b) => new Date(a.session_date) - new Date(b.session_date))
+      .map(s => ({date: s.session_date, val: s[d.key]}));
+
+    const best = d.lowerIsBetter ? Math.min(...pts.map(p=>p.val)) : Math.max(...pts.map(p=>p.val));
+    const latest = pts[pts.length-1].val;
+    const first = pts[0].val;
+    const change = latest - first;
+    const improved = d.lowerIsBetter ? change < 0 : change > 0;
+    const changeStr = (change >= 0 ? '+' : '') + change.toFixed(1);
+    const deltaClass = change === 0 ? 'neutral' : (improved ? 'up' : 'down');
+    const deltaArrow = change === 0 ? '' : (improved ? '▲ ' : '▼ ');
+
+    html += `<div class="metric-chart-card">
+      <div class="mcc-header">
+        <div>
+          <div class="mcc-label">${d.label}</div>
+          <div style="font-family:'Bebas Neue',sans-serif;font-size:1.5rem;color:var(--blue);line-height:1.1">${latest} <span style="font-size:0.7rem;color:var(--muted);font-family:'Barlow',sans-serif;font-weight:400">${d.unit}</span></div>
+        </div>
+        <div class="mcc-stats">
+          <div class="mcc-best">⭐ Best: ${best}${d.unit}</div>
+          <div class="mcc-delta ${deltaClass}">${deltaArrow}${changeStr} ${d.unit}</div>
+          <div style="font-size:0.62rem;color:var(--muted2);font-family:'Barlow Condensed',sans-serif;margin-top:1px">${pts.length} sessions</div>
+        </div>
+      </div>
+      <canvas id="${d.id}" class="metric-trend" height="110"></canvas>
+    </div>`;
+  });
+
+  html += `</div></div>`;
+  return html;
+}
+
+function drawMetricChart(defId, sessions, group) {
+  const def = METRIC_DEFS.find(d => d.id === defId);
+  if (!def) return;
+  const pts = sessions
+    .filter(s => s[def.key] != null)
+    .sort((a,b) => new Date(a.session_date) - new Date(b.session_date))
+    .map(s => ({date: s.session_date, val: s[def.key]}));
+  if (pts.length < 2) return;
+
+  const canvas = document.getElementById(defId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 280;
+  const H = 110;
+  canvas.width = W; canvas.height = H;
+
+  const best = def.lowerIsBetter ? Math.min(...pts.map(p=>p.val)) : Math.max(...pts.map(p=>p.val));
+  const vals = pts.map(p=>p.val);
+  const minVal = Math.min(...vals);
+  const maxVal = Math.max(...vals);
+  const pad = {t:18, b:26, l:32, r:12};
+  const W2 = W - pad.l - pad.r;
+  const H2 = H - pad.t - pad.b;
+  const range = maxVal - minVal || 1;
+
+  const xPos = i => pad.l + (i / (pts.length - 1)) * W2;
+  const yPos = v => def.lowerIsBetter
+    ? pad.t + ((v - minVal) / range) * H2   // lower = higher on screen = bad
+    : pad.t + (1 - (v - minVal) / range) * H2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // subtle grid lines
+  ctx.strokeStyle = '#e2e5ea'; ctx.lineWidth = 1;
+  [0, 0.5, 1].forEach(t => {
+    const yy = pad.t + t * H2;
+    ctx.beginPath(); ctx.moveTo(pad.l, yy); ctx.lineTo(W - pad.r, yy); ctx.stroke();
+  });
+
+  // gradient fill under line
+  const grad = ctx.createLinearGradient(0, pad.t, 0, H - pad.b);
+  grad.addColorStop(0, def.color + '30');
+  grad.addColorStop(1, def.color + '04');
+  ctx.beginPath();
+  ctx.moveTo(xPos(0), yPos(pts[0].val));
+  pts.forEach((p,i) => { if(i>0) ctx.lineTo(xPos(i), yPos(p.val)); });
+  ctx.lineTo(xPos(pts.length-1), H - pad.b);
+  ctx.lineTo(xPos(0), H - pad.b);
+  ctx.closePath(); ctx.fillStyle = grad; ctx.fill();
+
+  // main trend line
+  ctx.beginPath(); ctx.strokeStyle = def.color; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+  pts.forEach((p,i) => { i===0 ? ctx.moveTo(xPos(i), yPos(p.val)) : ctx.lineTo(xPos(i), yPos(p.val)); });
+  ctx.stroke();
+
+  // dots — gold star for personal best, colored for rest
+  pts.forEach((p, i) => {
+    const cx = xPos(i), cy = yPos(p.val);
+    const isPB = p.val === best;
+
+    if (isPB) {
+      // gold ring for personal best
+      ctx.beginPath(); ctx.arc(cx, cy, 6, 0, Math.PI*2);
+      ctx.fillStyle = '#c9a227'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#fff'; ctx.fill();
+      ctx.beginPath(); ctx.arc(cx, cy, 2.5, 0, Math.PI*2);
+      ctx.fillStyle = '#c9a227'; ctx.fill();
+    } else {
+      ctx.beginPath(); ctx.arc(cx, cy, 3.5, 0, Math.PI*2);
+      ctx.fillStyle = def.color; ctx.fill();
+    }
+
+    // value label above dot
+    ctx.fillStyle = isPB ? '#c9a227' : def.color;
+    ctx.font = `${isPB ? 'bold ' : ''}9px "Barlow Condensed",sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillText(p.val, cx, cy - 8);
+
+    // date label below
+    ctx.fillStyle = '#9ca3af';
+    ctx.font = '8px "Barlow",sans-serif';
+    const d = p.date.split('-');
+    ctx.fillText(`${d[1]}/${d[2]}`, cx, H - pad.b + 13);
+  });
+}
+
+function drawAllMetricCharts(sessions) {
+  METRIC_DEFS.forEach(def => {
+    const pts = sessions.filter(s => s[def.key] != null);
+    if (pts.length >= 2) drawMetricChart(def.id, sessions, def.group);
+  });
+}
+
+// ── OVERVIEW mini-charts (unchanged logic, kept for Overview tab) ─────────────
+function drawAllCharts(sessions){
+  const charts = [
+    {id:'chart_maxvelo', key:'max_exit_velo', color:'#1a3a6e'},
+    {id:'chart_batspeed', key:'bat_speed', color:'#c9a227'},
+    {id:'chart_pitchvelo', key:'pitch_velo', color:'#1a7a3c'},
+    {id:'chart_distance', key:'max_distance', color:'#8b3a8b'},
+    {id:'chart_sixty', key:'sixty_dash', color:'#c0392b', lower_is_better:true},
+  ];
+  charts.forEach(ch => {
+    const data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));
+    if(data.length >= 2) drawChart(ch.id, data, ch.color, ch.lower_is_better);
+  });
+}
+
+function drawChart(canvasId, data, color, lowerIsBetter){
+  const canvas = document.getElementById(canvasId); if(!canvas) return;
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth||400, H = 100;
+  canvas.width = W; canvas.height = H;
+  const min = Math.min(...data.map(d=>d.val)) - (lowerIsBetter?0.3:2);
+  const max = Math.max(...data.map(d=>d.val)) + (lowerIsBetter?0.3:2);
+  const pad = {t:8,b:22,l:28,r:8};
+  const W2 = W-pad.l-pad.r, H2 = H-pad.t-pad.b;
+  const x = i => pad.l+(i/(data.length-1))*W2;
+  const y = v => lowerIsBetter
+    ? pad.t+(((v-min)/(max-min)))*H2
+    : pad.t+(1-((v-min)/(max-min)))*H2;
+  ctx.clearRect(0,0,W,H);
+  ctx.strokeStyle='#e2e5ea'; ctx.lineWidth=1;
+  for(let i=0;i<3;i++){const yy=pad.t+(i/2)*H2;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();}
+  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
+  grad.addColorStop(0,color+'22'); grad.addColorStop(1,color+'04');
+  ctx.beginPath();
+  ctx.moveTo(x(0),y(data[0].val));
+  data.forEach((d,i)=>{if(i>0)ctx.lineTo(x(i),y(d.val));});
+  ctx.lineTo(x(data.length-1),H-pad.b);
+  ctx.lineTo(x(0),H-pad.b);
+  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
+  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2;
+  data.forEach((d,i)=>{i===0?ctx.moveTo(x(i),y(d.val)):ctx.lineTo(x(i),y(d.val));});
+  ctx.stroke();
+  data.forEach((d,i)=>{
+    ctx.beginPath(); ctx.arc(x(i),y(d.val),3.5,0,Math.PI*2);
+    ctx.fillStyle=color; ctx.fill();
+    ctx.fillStyle=color; ctx.font='bold 9px Barlow Condensed,sans-serif';
+    ctx.textAlign='center'; ctx.fillText(d.val,x(i),y(d.val)-6);
+    ctx.fillStyle='#9ca3af'; ctx.font='9px Barlow,sans-serif';
+    ctx.fillText(fmtDate(d.date).split('/').slice(0,2).join('/'),x(i),H-pad.b+13);
+  });
+}
+
+// ── PROFILE RENDER ────────────────────────────────────────────────────────────
 function renderProfile(p){
   const sessions=allSessions.filter(s=>s.player_id===p.id).sort((a,b)=>new Date(a.session_date)-new Date(b.session_date));
   const age=calcAge(p.dob), videos=p.video_urls||[];
@@ -485,22 +709,44 @@ function renderProfile(p){
       </div>
     </div>`;
 
+  // ── HITTING METRICS + CHARTS ──
   if(p.max_velo||p.avg_velo||p.bat_speed||p.hha){
+    const hittingSessions = sessions.filter(s => s.max_exit_velo!=null||s.avg_exit_velo!=null||s.bat_speed!=null||s.max_distance!=null);
+    const pbMaxVelo = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.max_exit_velo).filter(Boolean)) : null;
+    const pbBatSpeed = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.bat_speed).filter(Boolean)) : null;
     html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Hitting Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.max_velo)html+=mbox(p.max_velo,'Max Exit Velo');if(p.avg_velo)html+=mbox(p.avg_velo,'Avg Exit Velo');if(p.bat_speed)html+=mbox(p.bat_speed,'Bat Speed');if(p.hha)html+=mbox(fmtHHA(p.hha),'Best HHA');
-    html+=`</div></div></div>`;
-  }
-  if(p.pitch_velo||p.spin_rate){
-    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Pitching Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.pitch_velo)html+=mbox(p.pitch_velo,'Pitch Velo');if(p.spin_rate)html+=mbox(p.spin_rate.toLocaleString(),'Spin Rate');
-    html+=`</div></div></div>`;
-  }
-  if(p.sixty_dash||p.pop_time||p.vertical_jump||p.outfield_velo){
-    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Athletic Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.sixty_dash)html+=mbox(p.sixty_dash+'s','60 Yard Dash');if(p.pop_time)html+=mbox(p.pop_time+'s','Pop Time');if(p.vertical_jump)html+=mbox(p.vertical_jump+'"','Vertical Jump');if(p.outfield_velo)html+=mbox(p.outfield_velo,'OF Velo');
-    html+=`</div></div></div>`;
+    if(p.max_velo) html+=mbox(p.max_velo,'Max Exit Velo', p.max_velo===pbMaxVelo&&pbMaxVelo!=null);
+    if(p.avg_velo) html+=mbox(p.avg_velo,'Avg Exit Velo', false);
+    if(p.bat_speed) html+=mbox(p.bat_speed,'Bat Speed', p.bat_speed===pbBatSpeed&&pbBatSpeed!=null);
+    if(p.hha) html+=mbox(fmtHHA(p.hha),'Best HHA', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'hitting');
+    html+=`</div></div>`;
   }
 
+  // ── PITCHING METRICS + CHARTS ──
+  if(p.pitch_velo||p.spin_rate){
+    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Pitching Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
+    if(p.pitch_velo) html+=mbox(p.pitch_velo,'Pitch Velo', false);
+    if(p.spin_rate) html+=mbox(p.spin_rate.toLocaleString(),'Spin Rate', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'pitching');
+    html+=`</div></div>`;
+  }
+
+  // ── ATHLETIC METRICS + CHARTS ──
+  if(p.sixty_dash||p.pop_time||p.vertical_jump||p.outfield_velo){
+    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Athletic Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
+    if(p.sixty_dash) html+=mbox(p.sixty_dash+'s','60 Yard Dash', false);
+    if(p.pop_time) html+=mbox(p.pop_time+'s','Pop Time', false);
+    if(p.vertical_jump) html+=mbox(p.vertical_jump+'"','Vertical Jump', false);
+    if(p.outfield_velo) html+=mbox(p.outfield_velo,'OF Velo', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'athletic');
+    html+=`</div></div>`;
+  }
+
+  // ── TABS ──
   html+=`<div class="prof-section">
     <div class="prof-tabs">
       <div class="prof-tab ${currentTab==='overview'?'active':''}" onclick="switchTab('overview')">Overview</div>
@@ -517,17 +763,12 @@ function renderProfile(p){
       {id:'chart_distance', key:'max_distance', label:'Max Distance', unit:'ft', color:'#8b3a8b'},
       {id:'chart_sixty', key:null, label:'60 Yard Dash', unit:'sec', color:'#c0392b', lower_is_better:true},
     ];
-    // build charts section
     let hasAnyChart = false;
     let chartHtml = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem">';
     charts.forEach(ch => {
       let data;
-      if(ch.key === null) {
-        // 60 dash comes from player field, not sessions (sessions don't track it yet — skip if no session data)
-        data = sessions.filter(s=>s.sixty_dash).map(s=>({date:s.session_date,val:s.sixty_dash}));
-      } else {
-        data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));
-      }
+      if(ch.key === null){data = sessions.filter(s=>s.sixty_dash).map(s=>({date:s.session_date,val:s.sixty_dash}));}
+      else{data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));}
       if(data.length >= 2){
         hasAnyChart = true;
         const best = ch.lower_is_better ? Math.min(...data.map(d=>d.val)) : Math.max(...data.map(d=>d.val));
@@ -576,7 +817,12 @@ function renderProfile(p){
   html+=`<div id="editFormSection" style="display:none"><div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Edit Player</div></div><div class="prof-sec-body">${buildEditForm(p)}</div></div></div>`;
 
   document.getElementById('profileContent').innerHTML=html;
-  if(currentTab==='overview') setTimeout(()=>drawAllCharts(sessions),80);
+
+  // Draw all charts after DOM is set
+  setTimeout(() => {
+    drawAllMetricCharts(sessions);
+    if(currentTab==='overview') drawAllCharts(sessions);
+  }, 80);
 }
 
 function switchTab(tab){currentTab=tab;const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}
@@ -653,7 +899,6 @@ async function saveEdit(){
   const name=gv('eN').trim(); if(!name){showToast('Name required',true);return;}
   const btn=document.getElementById('saveBtn'); btn.disabled=true;btn.textContent='Saving...';
   const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null};
-  // handle player password change
   const newPW = gv('eNewPW');
   const newPWConfirm = gv('eNewPWConfirm');
   if(newPW){
@@ -680,7 +925,6 @@ async function resetPlayerPassword(){
     const idx=allPlayers.findIndex(p=>p.id===currentId);
     if(idx!==-1) allPlayers[idx].player_password=null;
     showToast('Password reset — player must re-verify with PIN');
-    // re-render edit form
     const p=allPlayers.find(x=>x.id===currentId);
     if(p) document.getElementById('editFormSection').querySelector('.prof-sec-body').innerHTML=buildEditForm(p);
   }catch(e){showToast('Error: '+e.message,true);}
@@ -758,7 +1002,6 @@ function checkPW(){
 function logoutAdmin(){isAdmin=false;document.getElementById('adminBtn').textContent='Admin Login';document.getElementById('adminBtn').classList.remove('on');document.getElementById('addBtn').style.display='none';document.getElementById('playerLoginBtn').style.display='';if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}showToast('Logged out');}
 function closeLogin(){document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';}
 
-// ── Player Login ───────────────────────────────
 function handlePlayerLogin(){
   if(playerSession){logoutPlayer();return;}
   document.getElementById('playerNameInput').value='';
@@ -782,10 +1025,7 @@ async function checkPlayerPW(){
   if(!nameRaw){errEl.textContent='Please enter your name.';return;}
   const p = allPlayers.find(x=>x.name.toLowerCase()===nameRaw.toLowerCase());
   if(!p){errEl.textContent='Player not found. Check spelling and try again.';return;}
-
-  // ── RETURNING PLAYER (has password) ──────────────────────────────
   if(p.player_password){
-    // show return password field if not shown
     if(document.getElementById('playerReturnPWGroup').style.display==='none'){
       document.getElementById('playerReturnPWGroup').style.display='block';
       document.getElementById('playerLoginSub').textContent='Welcome back! Enter your password.';
@@ -798,27 +1038,16 @@ async function checkPlayerPW(){
     loginPlayer(p.id,p.name);
     return;
   }
-
-  // ── FIRST TIME (no password yet) — require PIN ────────────────────
-  if(!p.player_pin){
-    errEl.textContent='No PIN set for this profile yet. Contact Arcane staff to get your PIN.';
-    return;
-  }
-
-  // Step 1: show PIN field
+  if(!p.player_pin){errEl.textContent='No PIN set for this profile yet. Contact Arcane staff to get your PIN.';return;}
   if(document.getElementById('playerPINGroup').style.display==='none'){
     document.getElementById('playerPINGroup').style.display='block';
     document.getElementById('playerLoginSub').textContent='First time? Enter your PIN from Arcane staff.';
     document.getElementById('playerPINInput').focus();
     return;
   }
-
-  // Step 2: verify PIN
   const pin = document.getElementById('playerPINInput').value.trim();
   if(!pin){errEl.textContent='Please enter your PIN.';return;}
   if(pin!==p.player_pin){errEl.textContent='Incorrect PIN. Contact Arcane staff if you need help.';document.getElementById('playerPINInput').value='';return;}
-
-  // PIN correct — show create password fields
   if(document.getElementById('playerCreatePWGroup').style.display==='none'){
     document.getElementById('playerCreatePWGroup').style.display='block';
     document.getElementById('playerPINGroup').style.display='none';
@@ -826,8 +1055,6 @@ async function checkPlayerPW(){
     document.getElementById('playerPWInput').focus();
     return;
   }
-
-  // Step 3: save new password
   const pw = document.getElementById('playerPWInput').value;
   const pwConfirm = document.getElementById('playerPWConfirm').value;
   if(!pw){errEl.textContent='Please create a password.';return;}
@@ -846,7 +1073,6 @@ function loginPlayer(id,name){
   document.getElementById('playerLoginOverlay').classList.remove('open');
   document.getElementById('playerLoginBtn').textContent=`Hi, ${name.split(' ')[0]}`;
   document.getElementById('playerLoginBtn').classList.add('on');
-  // go to their profile
   goProfile(id);
   showToast(`Welcome, ${name.split(' ')[0]}!`);
 }
@@ -861,66 +1087,10 @@ function logoutPlayer(){
 
 function closePlayerLogin(){document.getElementById('playerLoginOverlay').classList.remove('open');}
 
-// helper: can current user edit this player?
 function canEdit(playerId){
   if(isAdmin) return true;
   if(playerSession && playerSession.id===playerId) return true;
   return false;
-}
-function drawAllCharts(sessions){
-  const charts = [
-    {id:'chart_maxvelo', key:'max_exit_velo', color:'#1a3a6e'},
-    {id:'chart_batspeed', key:'bat_speed', color:'#c9a227'},
-    {id:'chart_pitchvelo', key:'pitch_velo', color:'#1a7a3c'},
-    {id:'chart_distance', key:'max_distance', color:'#8b3a8b'},
-    {id:'chart_sixty', key:'sixty_dash', color:'#c0392b', lower_is_better:true},
-  ];
-  charts.forEach(ch => {
-    const data = sessions.filter(s=>s[ch.key]!=null).map(s=>({date:s.session_date,val:s[ch.key]}));
-    if(data.length >= 2) drawChart(ch.id, data, ch.color, ch.lower_is_better);
-  });
-}
-
-function drawChart(canvasId, data, color, lowerIsBetter){
-  const canvas = document.getElementById(canvasId); if(!canvas) return;
-  const ctx = canvas.getContext('2d');
-  const W = canvas.offsetWidth||400, H = 100;
-  canvas.width = W; canvas.height = H;
-  const min = Math.min(...data.map(d=>d.val)) - (lowerIsBetter?0.3:2);
-  const max = Math.max(...data.map(d=>d.val)) + (lowerIsBetter?0.3:2);
-  const pad = {t:8,b:22,l:28,r:8};
-  const W2 = W-pad.l-pad.r, H2 = H-pad.t-pad.b;
-  const x = i => pad.l+(i/(data.length-1))*W2;
-  // for lower_is_better, invert the y axis so improvement goes up
-  const y = v => lowerIsBetter
-    ? pad.t+(((v-min)/(max-min)))*H2
-    : pad.t+(1-((v-min)/(max-min)))*H2;
-  ctx.clearRect(0,0,W,H);
-  // grid lines
-  ctx.strokeStyle='#e2e5ea'; ctx.lineWidth=1;
-  for(let i=0;i<3;i++){const yy=pad.t+(i/2)*H2;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();}
-  // fill gradient
-  const grad=ctx.createLinearGradient(0,pad.t,0,H-pad.b);
-  grad.addColorStop(0,color+'22'); grad.addColorStop(1,color+'04');
-  ctx.beginPath();
-  ctx.moveTo(x(0),y(data[0].val));
-  data.forEach((d,i)=>{if(i>0)ctx.lineTo(x(i),y(d.val));});
-  ctx.lineTo(x(data.length-1),H-pad.b);
-  ctx.lineTo(x(0),H-pad.b);
-  ctx.closePath(); ctx.fillStyle=grad; ctx.fill();
-  // line
-  ctx.beginPath(); ctx.strokeStyle=color; ctx.lineWidth=2;
-  data.forEach((d,i)=>{i===0?ctx.moveTo(x(i),y(d.val)):ctx.lineTo(x(i),y(d.val));});
-  ctx.stroke();
-  // dots + value labels
-  data.forEach((d,i)=>{
-    ctx.beginPath(); ctx.arc(x(i),y(d.val),3.5,0,Math.PI*2);
-    ctx.fillStyle=color; ctx.fill();
-    ctx.fillStyle=color; ctx.font='bold 9px Barlow Condensed,sans-serif';
-    ctx.textAlign='center'; ctx.fillText(d.val,x(i),y(d.val)-6);
-    ctx.fillStyle='#9ca3af'; ctx.font='9px Barlow,sans-serif';
-    ctx.fillText(fmtDate(d.date).split('/').slice(0,2).join('/'),x(i),H-pad.b+13);
-  });
 }
 
 async function uploadFile(inputId,bucket,type){
@@ -948,7 +1118,7 @@ function getEmbedUrl(url){if(!url)return null;const yt=url.match(/(?:youtube\.co
 function calcAge(dob){if(!dob)return null;const t=new Date(),b=new Date(dob);let a=t.getFullYear()-b.getFullYear();if(t.getMonth()-b.getMonth()<0||(t.getMonth()-b.getMonth()===0&&t.getDate()<b.getDate()))a--;return a;}
 function fmtHHA(v){if(!v)return null;return'.'+(String(parseFloat(v).toFixed(3)).split('.')[1]||'000');}
 function fmtDate(d){if(!d)return'—';const p=d.split('-');return`${p[1]}/${p[2]}/${p[0].slice(2)}`;}
-function mbox(val,lbl){return`<div class="mbox"><div class="mbox-val">${val}</div><div class="mbox-lbl">${lbl}</div></div>`;}
+function mbox(val,lbl,isPB=false){return`<div class="mbox">${isPB?'<div class="mbox-pb">PB</div>':''}<div class="mbox-val">${val}</div><div class="mbox-lbl">${lbl}</div></div>`;}
 function gCls(g){return{'A+':'g-ap','A':'g-a','A-':'g-am','B+':'g-bp','B':'g-b','B-':'g-bm','C+':'g-cp','C':'g-c'}[g]||'g-na';}
 function tCls(t){if(!t)return't-orange';if(t.includes('Elite')||t.includes('100 MPH')||t.includes('Breakthrough'))return't-gold';if(t.includes('D1')||t.includes('Varsity')||t.includes('College'))return't-green';if(t.includes('Two-Way'))return't-blue';if(t.includes('Prospect')||t.includes('Upside')||t.includes('Trending'))return't-purple';if(t.includes('Alert')||t.includes('Intervention')||t.includes('Regression'))return't-red';return't-orange';}
 function gv(id){const el=document.getElementById(id);return el?el.value:'';}
