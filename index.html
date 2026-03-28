@@ -720,16 +720,15 @@ function renderProfile(p){
       </div>
     </div>`;
 
-  // ── VIDEOS SECTION (always visible) ──
+  // ── VIDEOS SECTION (featured only — always visible) ──
   const featured = (p.video_urls||[])[0]||null;
   const shorts = [(p.video_urls||[])[1]||null, (p.video_urls||[])[2]||null, (p.video_urls||[])[3]||null];
   const hasAnyVideo = featured || shorts.some(v=>v);
-  if(hasAnyVideo || isAdmin){
+  if(featured || isAdmin){
     html+=`<div class="prof-videos">
       <div class="prof-sec-head" style="background:#f8f9fb;border-bottom:1px solid var(--border);padding:0.85rem 1.25rem;">
         <div class="prof-sec-title">Highlight Videos</div>
       </div>`;
-    // Featured
     const featEmbed = featured ? getEmbedUrl(featured) : null;
     if(featEmbed){
       html+=`<div style="position:relative">
@@ -743,28 +742,6 @@ function renderProfile(p){
         <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.85rem;letter-spacing:1px;text-transform:uppercase;margin-bottom:0.5rem">No featured video yet</div>
         <div style="font-size:0.8rem;color:var(--muted2)">Add one in the Videos tab below</div>
       </div>`;
-    }
-    // Shorts row — only show if at least one short exists or admin
-    const hasShorts = shorts.some(v=>v);
-    if(hasShorts || isAdmin){
-      html+=`<div class="shorts-row">`;
-      shorts.forEach((url,i)=>{
-        const embed = url ? getEmbedUrl(url) : null;
-        if(embed){
-          html+=`<div style="position:relative">
-            <div class="short-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>
-            <div class="video-slot-label">Clip ${i+1}</div>
-            ${isAdmin?`<button class="video-remove-btn show" onclick="removeVideoSlot(${i+1})">✕</button>`:''}
-          </div>`;
-        } else {
-          html+=`<div style="position:relative">
-            <div class="short-wrap"><div class="short-empty" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
-              ${isAdmin?`<div style="font-size:1.2rem">＋</div><div>Clip ${i+1}</div><div style="font-size:0.65rem;color:var(--muted2)">Add in Videos tab</div>`:`<div style="font-size:1rem;color:#444">🎬</div>`}
-            </div></div>
-          </div>`;
-        }
-      });
-      html+=`</div>`;
     }
     html+=`</div>`;
   }
@@ -899,6 +876,35 @@ function renderProfile(p){
   html+=`</div></div>`;
 
   html+=`<div id="editFormSection" style="display:none"><div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Edit Player</div></div><div class="prof-sec-body">${buildEditForm(p)}</div></div></div>`;
+
+  // ── SHORTS ROW (bottom of page) ──
+  const hasShorts = shorts.some(v=>v);
+  if(hasShorts || isAdmin){
+    html+=`<div class="prof-videos">
+      <div class="prof-sec-head" style="background:#f8f9fb;border-bottom:1px solid var(--border);padding:0.85rem 1.25rem;">
+        <div class="prof-sec-title">Clips</div>
+      </div>
+      <div class="shorts-row">`;
+    shorts.forEach((url,i)=>{
+      const embed = url ? getEmbedUrl(url) : null;
+      if(embed){
+        html+=`<div style="position:relative">
+          <div class="short-wrap"><iframe src="${embed}" allowfullscreen></iframe></div>
+          <div class="video-slot-label">Clip ${i+1}</div>
+          ${isAdmin?`<button class="video-remove-btn show" onclick="removeVideoSlot(${i+1})">✕</button>`:''}
+        </div>`;
+      } else if(isAdmin){
+        html+=`<div style="position:relative">
+          <div class="short-wrap"><div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0.3rem;color:var(--muted2);">
+            <div style="font-size:1.2rem">＋</div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;letter-spacing:1px;text-transform:uppercase;">Clip ${i+1}</div>
+            <div style="font-size:0.65rem;">Add in Videos tab</div>
+          </div></div>
+        </div>`;
+      }
+    });
+    html+=`</div></div>`;
+  }
 
   document.getElementById('profileContent').innerHTML=html;
 
