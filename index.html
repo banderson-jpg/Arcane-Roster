@@ -407,6 +407,7 @@ async function sbPatch(t,id,d){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}
 async function sbDel(t,id){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?id=eq.${id}`,{method:'DELETE',headers:SBH});if(!r.ok)throw new Error(await r.text());}
 
 async function init(){
+  document.getElementById('searchInput').value='';
   try{
     [allPlayers,allSessions]=await Promise.all([sbGet('players','select=*&order=name.asc'),sbGet('player_sessions','select=*&order=session_date.desc')]);
     renderGrid(allPlayers); updateSidebar(allPlayers);
@@ -418,7 +419,9 @@ function goRoster(){
   document.getElementById('rosterView').style.display='flex';
   document.getElementById('profileView').style.display='none';
   document.getElementById('backBtn').classList.remove('show');
+  document.getElementById('searchInput').value='';
   document.title='Arcane Baseball — Player Database';
+  applyFilters();
   window.scrollTo(0,0);
 }
 
@@ -746,44 +749,7 @@ function renderProfile(p){
     html+=`</div>`;
   }
 
-  // ── HITTING METRICS + CHARTS ──
-  if(p.max_velo||p.avg_velo||p.bat_speed||p.hha){
-    const hittingSessions = sessions.filter(s => s.max_exit_velo!=null||s.avg_exit_velo!=null||s.bat_speed!=null||s.max_distance!=null);
-    const pbMaxVelo = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.max_exit_velo).filter(Boolean)) : null;
-    const pbBatSpeed = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.bat_speed).filter(Boolean)) : null;
-    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Hitting Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.max_velo) html+=mbox(p.max_velo,'Max Exit Velo', p.max_velo===pbMaxVelo&&pbMaxVelo!=null);
-    if(p.avg_velo) html+=mbox(p.avg_velo,'Avg Exit Velo', false);
-    if(p.bat_speed) html+=mbox(p.bat_speed,'Bat Speed', p.bat_speed===pbBatSpeed&&pbBatSpeed!=null);
-    if(p.hha) html+=mbox(fmtHHA(p.hha),'Best HHA', false);
-    html+=`</div>`;
-    html += buildMetricCharts(sessions, 'hitting');
-    html+=`</div></div>`;
-  }
-
-  // ── PITCHING METRICS + CHARTS ──
-  if(p.pitch_velo||p.spin_rate){
-    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Pitching Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.pitch_velo) html+=mbox(p.pitch_velo,'Pitch Velo', false);
-    if(p.spin_rate) html+=mbox(p.spin_rate.toLocaleString(),'Spin Rate', false);
-    html+=`</div>`;
-    html += buildMetricCharts(sessions, 'pitching');
-    html+=`</div></div>`;
-  }
-
-  // ── ATHLETIC METRICS + CHARTS ──
-  if(p.sixty_dash||p.pop_time||p.vertical_jump||p.outfield_velo){
-    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Athletic Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
-    if(p.sixty_dash) html+=mbox(p.sixty_dash+'s','60 Yard Dash', false);
-    if(p.pop_time) html+=mbox(p.pop_time+'s','Pop Time', false);
-    if(p.vertical_jump) html+=mbox(p.vertical_jump+'"','Vertical Jump', false);
-    if(p.outfield_velo) html+=mbox(p.outfield_velo,'OF Velo', false);
-    html+=`</div>`;
-    html += buildMetricCharts(sessions, 'athletic');
-    html+=`</div></div>`;
-  }
-
-  // ── TABS ──
+  // ── TABS (right after featured video) ──
   html+=`<div class="prof-section">
     <div class="prof-tabs">
       <div class="prof-tab ${currentTab==='overview'?'active':''}" onclick="switchTab('overview')">Overview</div>
@@ -874,6 +840,43 @@ function renderProfile(p){
     }
   }
   html+=`</div></div>`;
+
+  // ── HITTING METRICS + CHARTS ──
+  if(p.max_velo||p.avg_velo||p.bat_speed||p.hha){
+    const hittingSessions = sessions.filter(s => s.max_exit_velo!=null||s.avg_exit_velo!=null||s.bat_speed!=null||s.max_distance!=null);
+    const pbMaxVelo = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.max_exit_velo).filter(Boolean)) : null;
+    const pbBatSpeed = hittingSessions.length ? Math.max(...hittingSessions.map(s=>s.bat_speed).filter(Boolean)) : null;
+    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Hitting Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
+    if(p.max_velo) html+=mbox(p.max_velo,'Max Exit Velo', p.max_velo===pbMaxVelo&&pbMaxVelo!=null);
+    if(p.avg_velo) html+=mbox(p.avg_velo,'Avg Exit Velo', false);
+    if(p.bat_speed) html+=mbox(p.bat_speed,'Bat Speed', p.bat_speed===pbBatSpeed&&pbBatSpeed!=null);
+    if(p.hha) html+=mbox(fmtHHA(p.hha),'Best HHA', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'hitting');
+    html+=`</div></div>`;
+  }
+
+  // ── PITCHING METRICS + CHARTS ──
+  if(p.pitch_velo||p.spin_rate){
+    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Pitching Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
+    if(p.pitch_velo) html+=mbox(p.pitch_velo,'Pitch Velo', false);
+    if(p.spin_rate) html+=mbox(p.spin_rate.toLocaleString(),'Spin Rate', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'pitching');
+    html+=`</div></div>`;
+  }
+
+  // ── ATHLETIC METRICS + CHARTS ──
+  if(p.sixty_dash||p.pop_time||p.vertical_jump||p.outfield_velo){
+    html+=`<div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Athletic Metrics</div></div><div class="prof-sec-body"><div class="metrics-grid">`;
+    if(p.sixty_dash) html+=mbox(p.sixty_dash+'s','60 Yard Dash', false);
+    if(p.pop_time) html+=mbox(p.pop_time+'s','Pop Time', false);
+    if(p.vertical_jump) html+=mbox(p.vertical_jump+'"','Vertical Jump', false);
+    if(p.outfield_velo) html+=mbox(p.outfield_velo,'OF Velo', false);
+    html+=`</div>`;
+    html += buildMetricCharts(sessions, 'athletic');
+    html+=`</div></div>`;
+  }
 
   html+=`<div id="editFormSection" style="display:none"><div class="prof-section"><div class="prof-sec-head"><div class="prof-sec-title">Edit Player</div></div><div class="prof-sec-body">${buildEditForm(p)}</div></div></div>`;
 
