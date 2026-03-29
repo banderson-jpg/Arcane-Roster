@@ -104,7 +104,7 @@ body{font-family:'Barlow',sans-serif;background:var(--bg);color:var(--text);min-
 .prof-hero-banner{height:6px;background:linear-gradient(90deg,var(--blue),var(--gold));}
 .prof-hero-body{display:flex;align-items:stretch;}
 .prof-photo-col{width:220px;flex-shrink:0;}
-.prof-photo{width:220px;height:260px;object-fit:cover;object-position:top;display:block;}
+.prof-photo{width:220px;height:260px;object-fit:cover;object-position:center;display:block;}
 .prof-nophoto{width:220px;height:260px;background:linear-gradient(135deg,#e8ecf2,#dde3ec);display:flex;align-items:center;justify-content:center;font-size:4rem;color:#b0b8c8;}
 .prof-info-col{flex:1;padding:1.5rem 2rem;border-left:1px solid var(--border);}
 .prof-name{font-family:'Bebas Neue',sans-serif;font-size:2.6rem;letter-spacing:2px;color:var(--blue);line-height:1;margin-bottom:0.25rem;}
@@ -227,7 +227,7 @@ canvas.trend{width:100%;height:130px;display:block;}
   .sidebar{display:none;}
   .prof-hero-body{flex-direction:column;}
   .prof-photo-col{width:100%;}
-  .prof-photo,.prof-nophoto{width:100%;height:220px;}
+  .prof-photo,.prof-nophoto{width:100%;height:320px;}
   .prof-info-col{border-left:none;border-top:1px solid var(--border);}
   .videos-grid{grid-template-columns:1fr;}
   .prof-bio-grid{grid-template-columns:1fr 1fr;}
@@ -708,8 +708,8 @@ function renderProfile(p){
           </div>
           <div class="prof-grade-row">${(p.tags||[]).slice(0,4).map(t=>`<span class="tag ${tCls(t)}">${t}</span>`).join('')}</div>
           <div class="prof-social">
-            ${p.instagram?`<a class="social-btn social-ig" href="https://instagram.com/${p.instagram.replace('@','')}" target="_blank">📸 ${p.instagram}</a>`:''}
-            ${p.twitter?`<a class="social-btn social-tw" href="https://twitter.com/${p.twitter.replace('@','')}" target="_blank">𝕏 ${p.twitter}</a>`:''}
+            ${p.instagram?`<a class="social-btn social-ig" href="${socialUrl(p.instagram,'instagram.com')}" target="_blank">📸 ${p.instagram}</a>`:''}
+            ${p.twitter?`<a class="social-btn social-tw" href="${socialUrl(p.twitter,'twitter.com')}" target="_blank">𝕏 ${p.twitter}</a>`:''}
             ${p.schedule_url?`<a class="social-btn social-sched" href="${p.schedule_url}" target="_blank">📄 Schedule</a>`:''}
           </div>
           <div class="prof-admin-btns ${canEdit(p.id)?'show':''}" id="profAdminBtns">
@@ -1229,6 +1229,13 @@ async function doUpload(file,bucket,ext){
 }
 function prevPhoto(inputId,previewId){const file=document.getElementById(inputId)?.files[0];if(!file)return;const reader=new FileReader();reader.onload=e=>{const el=document.getElementById(previewId);if(el){el.src=e.target.result;el.style.display='block';}};reader.readAsDataURL(file);}
 
+function socialUrl(val, domain){
+  if(!val) return '#';
+  // if it's already a full URL, use it as-is
+  if(val.startsWith('http://') || val.startsWith('https://')) return val;
+  // strip @ and build URL
+  return `https://${domain}/${val.replace('@','')}`;
+}
 function getEmbedUrl(url){
   if(!url) return null;
   // YouTube watch, short link, embed, and Shorts
