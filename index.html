@@ -253,7 +253,7 @@ canvas.trend{width:100%;height:130px;display:block;}
 <div id="rosterView">
   <div class="sidebar">
     <div class="sidebar-section">Search</div>
-    <div class="search-box"><input type="text" id="searchInput" placeholder="Player name..." oninput="applyFilters()" autocomplete="off"></div>
+    <div class="search-box"><input type="text" id="searchInput" placeholder="Player name..." oninput="applyFilters()" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" readonly onfocus="this.removeAttribute('readonly')"></div>
     <div class="sidebar-section">Filter</div>
     <div class="filter-group">
       <select class="fsel" id="yearFilter" onchange="applyFilters()"><option value="">All Classes</option><option>2027</option><option>2028</option><option>2029</option><option>2030</option><option>2031</option><option>2033</option><option>2034</option></select>
