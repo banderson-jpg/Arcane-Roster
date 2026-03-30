@@ -760,23 +760,31 @@ function renderProfile(p){
   // ── SCHEDULE BLOCK ──
   const tmpl = p.schedule_template_id ? allTemplates.find(t=>t.id===p.schedule_template_id) : null;
   if(tmpl){
-    const schedItems = [
-      tmpl.pitching_day1 ? {type:'Pitching', day:tmpl.pitching_day1, time:tmpl.pitching_time1} : null,
-      tmpl.pitching_day2 ? {type:'Pitching', day:tmpl.pitching_day2, time:tmpl.pitching_time2} : null,
-      tmpl.speed_day1 ? {type:'Speed & Agility', day:tmpl.speed_day1, time:tmpl.speed_time1} : null,
-      tmpl.speed_day2 ? {type:'Speed & Agility', day:tmpl.speed_day2, time:tmpl.speed_time2} : null,
-    ].filter(Boolean);
-    if(schedItems.length){
+    const DAYS = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+    const DAYS_SHORT = ['MON','TUE','WED','THU','FRI','SAT','SUN'];
+    // Build a map of day -> [{type, time}]
+    const dayMap = {};
+    DAYS.forEach(d => dayMap[d] = []);
+    for(let i=1;i<=7;i++){
+      if(tmpl[`pitching_day${i}`]) dayMap[tmpl[`pitching_day${i}`]].push({type:'Pitching', time:tmpl[`pitching_time${i}`]||'', color:'var(--blue)'});
+      if(tmpl[`speed_day${i}`]) dayMap[tmpl[`speed_day${i}`]].push({type:'Speed & Agility', time:tmpl[`speed_time${i}`]||'', color:'var(--green)'});
+    }
+    const hasAny = DAYS.some(d=>dayMap[d].length>0);
+    if(hasAny){
       html+=`<div class="sched-block">
         <div class="prof-sec-head" style="background:#f8f9fb;border-bottom:1px solid var(--border);padding:0.85rem 1.25rem;">
           <div class="prof-sec-title">Class Schedule</div>
         </div>
-        <div class="sched-grid">`;
-      schedItems.forEach(s=>{
-        html+=`<div class="sched-item">
-          <div class="sched-type">${s.type}</div>
-          <div class="sched-day">${s.day}</div>
-          <div class="sched-time">${s.time||''}</div>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border);">`;
+      DAYS.forEach((day, i)=>{
+        const classes = dayMap[day];
+        const isActive = classes.length > 0;
+        html+=`<div style="padding:0.75rem 0.5rem;text-align:center;border-right:${i<6?'1px solid var(--border)':'none'};background:${isActive?'#f0f5ff':'#fafafa'}">
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;letter-spacing:1px;color:${isActive?'var(--blue)':'var(--muted2)'};margin-bottom:0.4rem">${DAYS_SHORT[i]}</div>
+          ${classes.length ? classes.map(c=>`
+            <div style="background:${c.color};color:#fff;padding:2px 4px;margin-bottom:2px;font-family:'Barlow Condensed',sans-serif;font-size:0.65rem;font-weight:700;letter-spacing:0.5px;text-transform:uppercase;line-height:1.3">${c.type==='Pitching'?'⚾':'⚡'} ${c.type}</div>
+            ${c.time?`<div style="font-size:0.7rem;color:var(--text);font-weight:600;margin-top:2px">${c.time}</div>`:''}
+          `).join('') : `<div style="color:var(--border2);font-size:1rem;margin-top:0.25rem">—</div>`}
         </div>`;
       });
       html+=`</div>`;
@@ -1356,8 +1364,13 @@ function renderTemplatesList(){
     el.innerHTML=`<div class="empty"><div style="font-size:0.9rem">No templates yet. Click "+ New Template" to create one.</div></div>`;
     return;
   }
-  el.innerHTML = allTemplates.map(t=>`
-    <div class="tmpl-card">
+  el.innerHTML = allTemplates.map(t=>{
+    let pitchDays=[], speedDays=[];
+    for(let i=1;i<=7;i++){
+      if(t[`pitching_day${i}`]) pitchDays.push(`${t[`pitching_day${i}`]}${t[`pitching_time${i}`]?' '+t[`pitching_time${i}`]:''}`);
+      if(t[`speed_day${i}`]) speedDays.push(`${t[`speed_day${i}`]}${t[`speed_time${i}`]?' '+t[`speed_time${i}`]:''}`);
+    }
+    return `<div class="tmpl-card">
       <div class="tmpl-card-head">
         <div class="tmpl-name">${t.name}</div>
         <div style="display:flex;gap:0.5rem;">
@@ -1365,36 +1378,37 @@ function renderTemplatesList(){
           <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id})">Delete</button>
         </div>
       </div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;font-size:0.82rem;">
-        ${t.pitching_day1?`<div><span style="color:var(--muted)">Pitching:</span> ${t.pitching_day1} ${t.pitching_time1||''}</div>`:''}
-        ${t.pitching_day2?`<div><span style="color:var(--muted)">Pitching:</span> ${t.pitching_day2} ${t.pitching_time2||''}</div>`:''}
-        ${t.speed_day1?`<div><span style="color:var(--muted)">Speed:</span> ${t.speed_day1} ${t.speed_time1||''}</div>`:''}
-        ${t.speed_day2?`<div><span style="color:var(--muted)">Speed:</span> ${t.speed_day2} ${t.speed_time2||''}</div>`:''}
-        ${t.facility_access?`<div><span style="color:var(--muted)">Access:</span> ${t.facility_access}</div>`:''}
+      <div style="font-size:0.82rem;display:flex;flex-direction:column;gap:0.25rem;">
+        ${pitchDays.length?`<div>⚾ <span style="color:var(--muted)">Pitching:</span> ${pitchDays.join(' · ')}</div>`:''}
+        ${speedDays.length?`<div>⚡ <span style="color:var(--muted)">Speed:</span> ${speedDays.join(' · ')}</div>`:''}
+        ${t.facility_access?`<div>🔑 <span style="color:var(--muted)">Access:</span> ${t.facility_access}</div>`:''}
       </div>
       ${t.notes?`<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--muted)">📌 ${t.notes}</div>`:''}
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 function templateFormHtml(t={}){
   const sv=v=>v||'';
   const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
   const dayOpts=(val)=>days.map(d=>`<option ${val===d?'selected':''}>${d}</option>`).join('');
-  return `
-    <div class="fg" style="grid-column:1/-1"><label>Template Name *</label><input type="text" id="tName" value="${sv(t.name)}" placeholder="e.g. All Access — 70mph"></div>
-    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Pitching Classes</div>
-    <div class="fg"><label>Day 1</label><select id="tPD1"><option value="">—</option>${dayOpts(t.pitching_day1)}</select></div>
-    <div class="fg"><label>Time 1</label><input type="text" id="tPT1" value="${sv(t.pitching_time1)}" placeholder="e.g. 5:00 PM"></div>
-    <div class="fg"><label>Day 2 (optional)</label><select id="tPD2"><option value="">—</option>${dayOpts(t.pitching_day2)}</select></div>
-    <div class="fg"><label>Time 2</label><input type="text" id="tPT2" value="${sv(t.pitching_time2)}" placeholder="e.g. 5:00 PM"></div>
-    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Speed & Agility Classes</div>
-    <div class="fg"><label>Day 1</label><select id="tSD1"><option value="">—</option>${dayOpts(t.speed_day1)}</select></div>
-    <div class="fg"><label>Time 1</label><input type="text" id="tST1" value="${sv(t.speed_time1)}" placeholder="e.g. 4:00 PM"></div>
-    <div class="fg"><label>Day 2 (optional)</label><select id="tSD2"><option value="">—</option>${dayOpts(t.speed_day2)}</select></div>
-    <div class="fg"><label>Time 2</label><input type="text" id="tST2" value="${sv(t.speed_time2)}" placeholder="e.g. 4:00 PM"></div>
-    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Other</div>
-    <div class="fg"><label>Facility Access</label><input type="text" id="tFA" value="${sv(t.facility_access)}" placeholder="e.g. 24/7"></div>
-    <div class="fg" style="grid-column:1/-1"><label>Notes</label><input type="text" id="tNotes" value="${sv(t.notes)}" placeholder="Any additional info..."></div>`;
+  let html=`<div class="fg" style="grid-column:1/-1"><label>Template Name *</label><input type="text" id="tName" value="${sv(t.name)}" placeholder="e.g. All Access — 70mph"></div>`;
+  // Pitching days
+  html+=`<div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">⚾ Pitching Classes</div>`;
+  for(let i=1;i<=7;i++){
+    html+=`<div class="fg"><label>Day ${i}${i>1?' (optional)':''}</label><select id="tPD${i}"><option value="">—</option>${dayOpts(t[`pitching_day${i}`])}</select></div>
+    <div class="fg"><label>Time ${i}</label><input type="text" id="tPT${i}" value="${sv(t[`pitching_time${i}`])}" placeholder="e.g. 5:00 PM"></div>`;
+  }
+  // Speed days
+  html+=`<div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">⚡ Speed & Agility Classes</div>`;
+  for(let i=1;i<=7;i++){
+    html+=`<div class="fg"><label>Day ${i}${i>1?' (optional)':''}</label><select id="tSD${i}"><option value="">—</option>${dayOpts(t[`speed_day${i}`])}</select></div>
+    <div class="fg"><label>Time ${i}</label><input type="text" id="tST${i}" value="${sv(t[`speed_time${i}`])}" placeholder="e.g. 4:00 PM"></div>`;
+  }
+  html+=`<div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Other</div>
+  <div class="fg"><label>Facility Access</label><input type="text" id="tFA" value="${sv(t.facility_access)}" placeholder="e.g. 24/7"></div>
+  <div class="fg" style="grid-column:1/-1"><label>Notes</label><input type="text" id="tNotes" value="${sv(t.notes)}" placeholder="Any additional info..."></div>`;
+  return html;
 }
 
 function addTemplate(){
@@ -1426,14 +1440,14 @@ function editTemplate(id){
 }
 
 function templatePayload(){
-  return {
-    name:gv('tName').trim(),
-    pitching_day1:gv('tPD1')||null, pitching_time1:gv('tPT1')||null,
-    pitching_day2:gv('tPD2')||null, pitching_time2:gv('tPT2')||null,
-    speed_day1:gv('tSD1')||null, speed_time1:gv('tST1')||null,
-    speed_day2:gv('tSD2')||null, speed_time2:gv('tST2')||null,
-    facility_access:gv('tFA')||null, notes:gv('tNotes')||null
-  };
+  const p = {name:gv('tName').trim(), facility_access:gv('tFA')||null, notes:gv('tNotes')||null};
+  for(let i=1;i<=7;i++){
+    p[`pitching_day${i}`]=gv(`tPD${i}`)||null;
+    p[`pitching_time${i}`]=gv(`tPT${i}`)||null;
+    p[`speed_day${i}`]=gv(`tSD${i}`)||null;
+    p[`speed_time${i}`]=gv(`tST${i}`)||null;
+  }
+  return p;
 }
 
 async function saveNewTemplate(){
