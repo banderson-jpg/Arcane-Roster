@@ -1381,7 +1381,7 @@ async function handleRSVP(playerId, templateId, classType, classDay, classTime, 
     try{
       const res = await sbPost('class_rsvps',{player_id:playerId,player_name:playerSession.name,class_type:classType,class_day:classDay,class_time:classTime||null,template_id:templateId});
       allRSVPs.push(res[0]);
-      emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {action:'✅ New RSVP',player_name:playerSession.name,class_type:classType,class_day:classDay,class_time:classTime||'—'});
+      emailjs.send(EJS_SERVICE, EJS_TEMPLATE, {action:'✅ New RSVP',player_name:playerSession.name,class_type:classType,class_day:classDay,class_time:classTime||'—'}).then(()=>console.log('Email sent OK')).catch(err=>console.error('EmailJS error:',err.status, err.text));
       const p=allPlayers.find(x=>x.id===currentId); if(p) renderProfile(p);
       showToast('RSVP confirmed!');
     }catch(e){showToast('Error: '+e.message,true);}
