@@ -162,7 +162,20 @@ canvas.metric-trend{width:100%;display:block;}
 .sf-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.65rem;margin-bottom:0.75rem;}
 .chart-wrap{background:#f8f9fb;border:1px solid var(--border);padding:1rem;margin-bottom:1.1rem;}
 canvas.trend{width:100%;height:130px;display:block;}
-/* ── VIDEO SECTION ── */
+/* ── SCHEDULE ── */
+.sched-block{background:#fff;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:1.25rem;overflow:hidden;}
+.sched-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:0;}
+.sched-item{padding:1rem 1.25rem;border-right:1px solid var(--border);border-bottom:1px solid var(--border);}
+.sched-item:last-child{border-right:none;}
+.sched-type{font-family:'Barlow Condensed',sans-serif;font-size:0.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:0.35rem;}
+.sched-day{font-family:'Bebas Neue',sans-serif;font-size:1.2rem;color:var(--blue);line-height:1;}
+.sched-time{font-size:0.85rem;color:var(--text);font-weight:600;margin-top:2px;}
+.sched-notes{padding:0.75rem 1.25rem;background:#fffbf0;border-top:1px solid var(--border);font-size:0.85rem;color:var(--muted);border-left:3px solid var(--gold);}
+/* Schedule manager modal */
+.tmpl-card{background:#f8f9fb;border:1px solid var(--border);padding:1rem;margin-bottom:0.75rem;}
+.tmpl-card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;}
+.tmpl-name{font-family:'Barlow Condensed',sans-serif;font-size:1rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;}
+.tmpl-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:0.5rem;}
 .prof-videos{background:#fff;border:1px solid var(--border);box-shadow:0 1px 4px rgba(0,0,0,0.04);margin-bottom:1.25rem;overflow:hidden;}
 .featured-video-wrap{position:relative;padding-bottom:56.25%;height:0;background:#0a0f1e;}
 .featured-video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;}
@@ -245,6 +258,7 @@ canvas.trend{width:100%;height:130px;display:block;}
   </div>
   <div class="topbar-right">
     <span style="font-size:0.8rem;color:rgba(255,255,255,0.5);font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;" id="playerCount"></span>
+    <button class="tbtn" id="scheduleBtn" onclick="openScheduleManager()" style="display:none">📅 Schedules</button>
     <button class="tbtn" id="playerLoginBtn" onclick="handlePlayerLogin()">Player Login</button>
     <button class="tbtn" id="adminBtn" onclick="handleAdminToggle()">Admin Login</button>
   </div>
@@ -381,6 +395,23 @@ canvas.trend{width:100%;height:130px;display:block;}
   </div>
 </div>
 
+<!-- SCHEDULE MANAGER -->
+<div class="modal-overlay" id="scheduleModal">
+  <div class="modal" style="max-width:860px;">
+    <div class="modal-head">
+      <div class="modal-title">Schedule Templates</div>
+      <div style="display:flex;gap:0.5rem;align-items:center;">
+        <button class="btn btn-gold btn-sm" onclick="addTemplate()">+ New Template</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeScheduleManager()">Close</button>
+      </div>
+    </div>
+    <div class="modal-body" id="scheduleModalBody" style="max-height:75vh;overflow-y:auto;">
+      <div class="loading" id="scheduleModalLoading"><div class="spinner"></div>Loading...</div>
+      <div id="templatesList"></div>
+    </div>
+  </div>
+</div>
+
 <!-- CONFIRM -->
 <div class="confirm-overlay" id="confirmOverlay">
   <div class="confirm-box">
@@ -401,7 +432,7 @@ const SUPABASE_KEY = 'sb_publishable_xfRVeQeWi4yN8Bq0VFNHOg_8Drk8U6z';
 const ADMIN_PASSWORD = 'arcane2024';
 
 const SBH = {'apikey':SUPABASE_KEY,'Authorization':`Bearer ${SUPABASE_KEY}`,'Content-Type':'application/json','Prefer':'return=representation'};
-let allPlayers=[], allSessions=[], currentId=null, isAdmin=false, currentTab='overview';
+let allPlayers=[], allSessions=[], allTemplates=[], currentId=null, isAdmin=false, currentTab='overview';
 let playerSession=null;
 
 async function sbGet(t,q=''){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?${q}`,{headers:SBH});if(!r.ok)throw new Error(await r.text());return r.json();}
@@ -412,7 +443,7 @@ async function sbDel(t,id){const r=await fetch(`${SUPABASE_URL}/rest/v1/${t}?id=
 async function init(){
   setTimeout(()=>{ document.getElementById('searchInput').value=''; applyFilters(); }, 100);
   try{
-    [allPlayers,allSessions]=await Promise.all([sbGet('players','select=*&order=name.asc'),sbGet('player_sessions','select=*&order=session_date.desc')]);
+    [allPlayers,allSessions,allTemplates]=await Promise.all([sbGet('players','select=*&order=name.asc'),sbGet('player_sessions','select=*&order=session_date.desc'),sbGet('schedule_templates','select=*&order=name.asc')]);
     renderGrid(allPlayers); updateSidebar(allPlayers);
   }catch(e){document.getElementById('loadingEl').innerHTML=`<div style="color:var(--red)">⚠ Could not connect.<br><small>${e.message}</small></div>`;}
 }
@@ -726,6 +757,35 @@ function renderProfile(p){
       </div>
     </div>`;
 
+  // ── SCHEDULE BLOCK ──
+  const tmpl = p.schedule_template_id ? allTemplates.find(t=>t.id===p.schedule_template_id) : null;
+  if(tmpl){
+    const schedItems = [
+      tmpl.pitching_day1 ? {type:'Pitching', day:tmpl.pitching_day1, time:tmpl.pitching_time1} : null,
+      tmpl.pitching_day2 ? {type:'Pitching', day:tmpl.pitching_day2, time:tmpl.pitching_time2} : null,
+      tmpl.speed_day1 ? {type:'Speed & Agility', day:tmpl.speed_day1, time:tmpl.speed_time1} : null,
+      tmpl.speed_day2 ? {type:'Speed & Agility', day:tmpl.speed_day2, time:tmpl.speed_time2} : null,
+    ].filter(Boolean);
+    if(schedItems.length){
+      html+=`<div class="sched-block">
+        <div class="prof-sec-head" style="background:#f8f9fb;border-bottom:1px solid var(--border);padding:0.85rem 1.25rem;">
+          <div class="prof-sec-title">Class Schedule</div>
+        </div>
+        <div class="sched-grid">`;
+      schedItems.forEach(s=>{
+        html+=`<div class="sched-item">
+          <div class="sched-type">${s.type}</div>
+          <div class="sched-day">${s.day}</div>
+          <div class="sched-time">${s.time||''}</div>
+        </div>`;
+      });
+      html+=`</div>`;
+      if(tmpl.facility_access) html+=`<div class="sched-notes">🔑 Facility Access: ${tmpl.facility_access}</div>`;
+      if(tmpl.notes) html+=`<div class="sched-notes" style="border-left-color:var(--blue)">📌 ${tmpl.notes}</div>`;
+      html+=`</div>`;
+    }
+  }
+
   // ── VIDEOS SECTION (featured only — always visible) ──
   const featured = (p.video_urls||[])[0]||null;
   const shorts = [(p.video_urls||[])[1]||null, (p.video_urls||[])[2]||null, (p.video_urls||[])[3]||null];
@@ -962,6 +1022,15 @@ function buildEditForm(p){
   <div class="fsec">Scouting</div>
   <div class="fg" style="margin-bottom:0.75rem"><label>Tags (comma separated)</label><input type="text" id="eTags" value="${(p.tags||[]).join(', ')}"></div>
   <div class="fg" style="margin-bottom:1.1rem"><label>Notes</label><textarea id="eNotes" rows="4">${sv(p.notes)}</textarea></div>
+  <div class="fsec">Schedule</div>
+  <div class="ef-grid">
+    <div class="fg"><label>Class Schedule Template</label>
+      <select id="eTemplate">
+        <option value="">— No schedule assigned —</option>
+        ${allTemplates.map(t=>`<option value="${t.id}" ${p.schedule_template_id===t.id?'selected':''}>${t.name}</option>`).join('')}
+      </select>
+    </div>
+  </div>
   <div class="fsec">Player Access</div>
   <div class="ef-grid">
     <div class="fg">
@@ -994,7 +1063,7 @@ function buildEditForm(p){
 async function saveEdit(){
   const name=gv('eN').trim(); if(!name){showToast('Name required',true);return;}
   const btn=document.getElementById('saveBtn'); btn.disabled=true;btn.textContent='Saving...';
-  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null};
+  const payload={name,dob:gv('eDOB')||null,height:gv('eH')||null,weight:parseInt(gv('eW'))||null,school:gv('eSch')||null,grad_year:parseInt(gv('eGY'))||null,position:gv('ePos')||null,bats:gv('eBats')||null,throws:gv('eThrows')||null,type:gv('eType')||'Hitter',max_velo:parseFloat(gv('eMV'))||null,avg_velo:parseFloat(gv('eAV'))||null,bat_speed:parseFloat(gv('eBS'))||null,pitch_velo:parseFloat(gv('ePV'))||null,spin_rate:parseFloat(gv('eSR'))||null,hha:parseFloat(gv('eHHA'))||null,sixty_dash:parseFloat(gv('e60'))||null,pop_time:parseFloat(gv('ePT'))||null,vertical_jump:parseFloat(gv('eVJ'))||null,outfield_velo:parseFloat(gv('eOV'))||null,instagram:gv('eIG')||null,twitter:gv('eTW')||null,notes:gv('eNotes')||null,tags:gv('eTags').split(',').map(t=>t.trim()).filter(Boolean),player_pin:gv('ePlayerPIN')||null,schedule_template_id:parseInt(gv('eTemplate'))||null};
   const newPW = gv('eNewPW');
   const newPWConfirm = gv('eNewPWConfirm');
   if(newPW){
@@ -1110,12 +1179,13 @@ function checkPW(){
     document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';
     document.getElementById('adminBtn').textContent='Admin: ON';document.getElementById('adminBtn').classList.add('on');
     document.getElementById('playerLoginBtn').style.display='none';
+    document.getElementById('scheduleBtn').style.display='';
     document.getElementById('addBtn').style.display='block';
     if(currentId){const btns=document.getElementById('profAdminBtns');if(btns)btns.classList.add('show');}
     showToast('Admin mode on');
   }else{document.getElementById('loginErr').textContent='Incorrect password';document.getElementById('pwInput').value='';}
 }
-function logoutAdmin(){isAdmin=false;document.getElementById('adminBtn').textContent='Admin Login';document.getElementById('adminBtn').classList.remove('on');document.getElementById('addBtn').style.display='none';document.getElementById('playerLoginBtn').style.display='';if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}showToast('Logged out');}
+function logoutAdmin(){isAdmin=false;document.getElementById('adminBtn').textContent='Admin Login';document.getElementById('adminBtn').classList.remove('on');document.getElementById('addBtn').style.display='none';document.getElementById('scheduleBtn').style.display='none';document.getElementById('playerLoginBtn').style.display='';if(currentId){const p=allPlayers.find(x=>x.id===currentId);if(p)renderProfile(p);}showToast('Logged out');}
 function closeLogin(){document.getElementById('loginOverlay').classList.remove('open');document.getElementById('pwInput').value='';document.getElementById('loginErr').textContent='';}
 
 function handlePlayerLogin(){
@@ -1270,6 +1340,137 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Enter'&&document.getElementById('loginOverlay').classList.contains('open'))checkPW();
   if(e.key==='Enter'&&document.getElementById('playerLoginOverlay').classList.contains('open'))checkPlayerPW();
 });
+
+// ── SCHEDULE MANAGER ─────────────────────────────────────────────────────────
+function openScheduleManager(){
+  document.getElementById('scheduleModal').classList.add('open');
+  renderTemplatesList();
+}
+function closeScheduleManager(){document.getElementById('scheduleModal').classList.remove('open');}
+
+function renderTemplatesList(){
+  const el = document.getElementById('templatesList');
+  const loading = document.getElementById('scheduleModalLoading');
+  loading.style.display='none';
+  if(!allTemplates.length){
+    el.innerHTML=`<div class="empty"><div style="font-size:0.9rem">No templates yet. Click "+ New Template" to create one.</div></div>`;
+    return;
+  }
+  el.innerHTML = allTemplates.map(t=>`
+    <div class="tmpl-card">
+      <div class="tmpl-card-head">
+        <div class="tmpl-name">${t.name}</div>
+        <div style="display:flex;gap:0.5rem;">
+          <button class="btn btn-blue btn-sm" onclick="editTemplate(${t.id})">Edit</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteTemplate(${t.id})">Delete</button>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:0.5rem;font-size:0.82rem;">
+        ${t.pitching_day1?`<div><span style="color:var(--muted)">Pitching:</span> ${t.pitching_day1} ${t.pitching_time1||''}</div>`:''}
+        ${t.pitching_day2?`<div><span style="color:var(--muted)">Pitching:</span> ${t.pitching_day2} ${t.pitching_time2||''}</div>`:''}
+        ${t.speed_day1?`<div><span style="color:var(--muted)">Speed:</span> ${t.speed_day1} ${t.speed_time1||''}</div>`:''}
+        ${t.speed_day2?`<div><span style="color:var(--muted)">Speed:</span> ${t.speed_day2} ${t.speed_time2||''}</div>`:''}
+        ${t.facility_access?`<div><span style="color:var(--muted)">Access:</span> ${t.facility_access}</div>`:''}
+      </div>
+      ${t.notes?`<div style="margin-top:0.5rem;font-size:0.8rem;color:var(--muted)">📌 ${t.notes}</div>`:''}
+    </div>`).join('');
+}
+
+function templateFormHtml(t={}){
+  const sv=v=>v||'';
+  const days=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  const dayOpts=(val)=>days.map(d=>`<option ${val===d?'selected':''}>${d}</option>`).join('');
+  return `
+    <div class="fg" style="grid-column:1/-1"><label>Template Name *</label><input type="text" id="tName" value="${sv(t.name)}" placeholder="e.g. All Access — 70mph"></div>
+    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Pitching Classes</div>
+    <div class="fg"><label>Day 1</label><select id="tPD1"><option value="">—</option>${dayOpts(t.pitching_day1)}</select></div>
+    <div class="fg"><label>Time 1</label><input type="text" id="tPT1" value="${sv(t.pitching_time1)}" placeholder="e.g. 5:00 PM"></div>
+    <div class="fg"><label>Day 2 (optional)</label><select id="tPD2"><option value="">—</option>${dayOpts(t.pitching_day2)}</select></div>
+    <div class="fg"><label>Time 2</label><input type="text" id="tPT2" value="${sv(t.pitching_time2)}" placeholder="e.g. 5:00 PM"></div>
+    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Speed & Agility Classes</div>
+    <div class="fg"><label>Day 1</label><select id="tSD1"><option value="">—</option>${dayOpts(t.speed_day1)}</select></div>
+    <div class="fg"><label>Time 1</label><input type="text" id="tST1" value="${sv(t.speed_time1)}" placeholder="e.g. 4:00 PM"></div>
+    <div class="fg"><label>Day 2 (optional)</label><select id="tSD2"><option value="">—</option>${dayOpts(t.speed_day2)}</select></div>
+    <div class="fg"><label>Time 2</label><input type="text" id="tST2" value="${sv(t.speed_time2)}" placeholder="e.g. 4:00 PM"></div>
+    <div style="grid-column:1/-1;font-family:'Barlow Condensed',sans-serif;font-size:0.75rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:2px;margin-top:0.5rem;padding-bottom:0.3rem;border-bottom:1px solid var(--border);">Other</div>
+    <div class="fg"><label>Facility Access</label><input type="text" id="tFA" value="${sv(t.facility_access)}" placeholder="e.g. 24/7"></div>
+    <div class="fg" style="grid-column:1/-1"><label>Notes</label><input type="text" id="tNotes" value="${sv(t.notes)}" placeholder="Any additional info..."></div>`;
+}
+
+function addTemplate(){
+  document.getElementById('templatesList').innerHTML=`
+    <div class="tmpl-card" style="border-color:var(--blue)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.85rem;">New Template</div>
+      <div class="tmpl-form-grid">${templateFormHtml()}</div>
+      <div style="display:flex;gap:0.75rem;margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+        <button class="btn btn-gold btn-sm" onclick="saveNewTemplate()">Save Template</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderTemplatesList()">Cancel</button>
+      </div>
+    </div>` + (allTemplates.length ? document.getElementById('templatesList').innerHTML : '');
+}
+
+function editTemplate(id){
+  const t = allTemplates.find(x=>x.id===id);
+  if(!t) return;
+  const cards = document.querySelectorAll('.tmpl-card');
+  // replace the card with an edit form
+  document.getElementById('templatesList').innerHTML=`
+    <div class="tmpl-card" style="border-color:var(--blue)">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:0.9rem;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1px;margin-bottom:0.85rem;">Edit: ${t.name}</div>
+      <div class="tmpl-form-grid">${templateFormHtml(t)}</div>
+      <div style="display:flex;gap:0.75rem;margin-top:1rem;padding-top:0.75rem;border-top:1px solid var(--border);">
+        <button class="btn btn-gold btn-sm" onclick="saveEditTemplate(${id})">Save Changes</button>
+        <button class="btn btn-ghost btn-sm" onclick="renderTemplatesList()">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function templatePayload(){
+  return {
+    name:gv('tName').trim(),
+    pitching_day1:gv('tPD1')||null, pitching_time1:gv('tPT1')||null,
+    pitching_day2:gv('tPD2')||null, pitching_time2:gv('tPT2')||null,
+    speed_day1:gv('tSD1')||null, speed_time1:gv('tST1')||null,
+    speed_day2:gv('tSD2')||null, speed_time2:gv('tST2')||null,
+    facility_access:gv('tFA')||null, notes:gv('tNotes')||null
+  };
+}
+
+async function saveNewTemplate(){
+  const payload = templatePayload();
+  if(!payload.name){showToast('Template name required',true);return;}
+  try{
+    const res = await sbPost('schedule_templates', payload);
+    allTemplates.push(res[0]);
+    allTemplates.sort((a,b)=>a.name.localeCompare(b.name));
+    renderTemplatesList();
+    showToast('Template saved');
+  }catch(e){showToast('Error: '+e.message,true);}
+}
+
+async function saveEditTemplate(id){
+  const payload = templatePayload();
+  if(!payload.name){showToast('Template name required',true);return;}
+  try{
+    await sbPatch('schedule_templates',id,payload);
+    const idx = allTemplates.findIndex(t=>t.id===id);
+    if(idx!==-1) allTemplates[idx]={...allTemplates[idx],...payload};
+    allTemplates.sort((a,b)=>a.name.localeCompare(b.name));
+    renderTemplatesList();
+    showToast('Template updated');
+  }catch(e){showToast('Error: '+e.message,true);}
+}
+
+async function deleteTemplate(id){
+  const t = allTemplates.find(x=>x.id===id);
+  if(!confirm(`Delete template "${t.name}"? Players assigned to it will lose their schedule.`)) return;
+  try{
+    await sbDel('schedule_templates',id);
+    allTemplates = allTemplates.filter(x=>x.id!==id);
+    renderTemplatesList();
+    showToast('Template deleted');
+  }catch(e){showToast('Error: '+e.message,true);}
+}
 
 init();
 </script>
